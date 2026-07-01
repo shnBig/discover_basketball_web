@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* 可选：重置 Tailwind 可能覆盖的 Antd 基础样式 */
+@layer base {
+  .ant-btn {
+    @apply border-none; /* 避免 Tailwind 边框样式干扰 */
+  }
+}

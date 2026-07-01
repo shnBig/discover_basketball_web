@@ -1,0 +1,12 @@
+body {
+  background-color: rgb(245,247,248);
+  margin: 0;
+  padding: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+html {
+  height: 100%;
+}
+
