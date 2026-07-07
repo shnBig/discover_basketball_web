@@ -13,23 +13,34 @@ export const loginApi = async (data) => {
 // 刷新 Token
 export const refreshTokenApi = async (data) => {
   try {
-    const res = await request.post('/admin/refresh_token', data);
+    const res = await request.post('/user/refresh_token', data);
     return res.data;
   } catch (error) {
     return Promise.reject(error);
   }
 }
 
-// 注册补全
-export const registerUser = async (data) => {
+// 注册管理员
+export async function addManager(data) {
   try {
-    const res = await request.post('/admin/register', data);
+    const res = await request.post("/admin", data);
     return res.data;
   } catch (error) {
     return Promise.reject(error);
   }
 }
 
+// 更新管理员
+export async function updateManager(data) {
+  try {
+    const res = await request.put("/admin", data);
+    return res.data;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
+// 分页查询管理员
 export async function getManagerPage(params) {
   try {
     const res = await request.get("/admin/page", { params });
@@ -39,9 +50,20 @@ export async function getManagerPage(params) {
   }
 }
 
-export async function addManager(data) {
+// 根据ID查询管理员
+export async function getManagerDetailApi(id) {
   try {
-    const res = await request.post("/admin/add", data);
+    const res = await request.get(`/admin/${id}`);
+    return res.data;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
+// 获取当前管理员信息
+export async function getManagerInfo() {
+  try {
+    const res = await request.get("/admin/info");
     return res.data;
   } catch (error) {
     return Promise.reject(error);
@@ -50,33 +72,26 @@ export async function addManager(data) {
 
 // 删除管理员
 export async function deleteManager(id) {
-    try {
-    const res = await request.delete(`/admin/delete/${id}`);
-    return res.data;
-  } catch (error) {
-    return Promise.reject(error);
-  }
-}
-// 更新管理员
-export async function updateManager(data) {
   try {
-    const res = await request.put("/admin/update", data);
+    const res = await request.delete(`/admin/${id}`);
     return res.data;
   } catch (error) {
     return Promise.reject(error);
   }
 }
-//修改状态
-export async function updateManagerStatus(data) {
+
+// 批量删除管理员
+export async function batchDeleteAdmin(ids) {
   try {
-    const res = await request.put("/admin/status", data);
+    const res = await request.delete("/admin", { params: { ids: ids.join(",") } });
     return res.data;
   } catch (error) {
     return Promise.reject(error);
   }
 }
-//修改密码
-export async function updateManagerPassword(data){
+
+// 修改密码
+export async function updateManagerPassword(data) {
   try {
     const res = await request.put("/admin/password", data);
     return res.data;
@@ -85,23 +100,12 @@ export async function updateManagerPassword(data){
   }
 }
 
-// 获取管理员详情
-export async function getManagerDetail(id) {    
+// 给管理员分配角色
+export async function assignRoles(data) {
   try {
-    const res = await request.get(`/admin/get/${id}`);
+    const res = await request.post("/admin/assignRoles", data);
     return res.data;
   } catch (error) {
     return Promise.reject(error);
   }
 }
-
-// 获取所有的权限
-export async function getAllManager() {
-  try {
-    const res = await request.get("/admin/list");
-    return res.data;
-  } catch (error) {
-    return Promise.reject(error);
-  }
-} 
-

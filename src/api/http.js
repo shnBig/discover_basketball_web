@@ -2,7 +2,7 @@ import axios from 'axios';
 import { message, notification } from 'ant-design-vue';
 import nprogress from 'nprogress';
 import 'nprogress/nprogress.css';
-// import { useUserStore } from '@/stores/user'; // 假设你用 Pinia 管理用户信息
+import { useUserStore } from '@/store/user';
 import router from '@/router';
 
 // 1. 创建实例
@@ -43,8 +43,9 @@ service.interceptors.response.use(
     if (res.code !== 200) {
       message.error(res.msg || '执行失败');
       if (res.code === 401) {
-        localStorage.removeItem('token');
-        router.push('/login');
+        const userStore = useUserStore();
+        userStore.logout();
+        router.replace('/login');
       }
       return Promise.reject(new Error(res.msg || 'Error'));
     }
@@ -60,8 +61,9 @@ service.interceptors.response.use(
       switch (error.response.status) {
         case 401:
           errMsg = '身份验证过期，请重新登录';
-          localStorage.removeItem('token');
-          router.push('/login');
+          const userStore = useUserStore();
+          userStore.logout();
+          router.replace('/login');
           break;
         case 403:
           errMsg = '拒绝访问，您没有权限';

@@ -8,14 +8,14 @@
       >
         <div class="flex items-center gap-3 md:gap-4 h-12 order-1">
           <img
-            src="/logo.png"
+            src="https://backend-admin.tos-cn-beijing.volces.com/logo/logo.png"
             alt="logo"
             class="size-8 md:size-10 rounded-full"
           />
           <h2
             class="text-slate-900 dark:text-slate-100 text-base md:text-lg font-bold leading-tight whitespace-nowrap -translate-y-[-4px]"
           >
-            校园二手电子设备平台后台管理系统
+            福尔摩篮后台管理系统
           </h2>
         </div>
 
@@ -120,7 +120,7 @@ const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
 const current = ref([route.name || "home"]);
-const avatarUrl = computed(() => userStore.userInfo?.avatar || JSON.parse(localStorage.getItem('userInfo') || '{}').avatar);
+const avatarUrl = computed(() => userStore.userInfo?.avatarUrl|| JSON.parse(localStorage.getItem('userInfo') || '{}').avatarUrl);
 // 当用户点击浏览器前进/后退，或者通过其他方式跳转路由时，同步更新菜单选中状态
 watch(
   () => route.name,

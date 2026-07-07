@@ -7,7 +7,7 @@
       :loading="loading"
       row-key="id"
       class="mt-[16px]"
-      :scroll="{ y: scrollY }"
+      :scroll="scrollConfig"
       @change="handleChange"
     >
       <template
@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const scrollY = ref(window.innerHeight - 460)
 
@@ -78,8 +78,20 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  scrollX: {
+    type: [Number, String],
+    default: 0
   }
 });
+
+const scrollConfig = computed(() => {
+  const config = { y: scrollY.value }
+  if (props.scrollX) {
+    config.x = props.scrollX
+  }
+  return config
+})
 
 const emit = defineEmits(['change']);
 

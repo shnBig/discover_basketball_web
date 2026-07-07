@@ -1,64 +1,79 @@
 import request from './http';
 
+// 分页查询角色
 export async function getRolePage(params) {
   try {
-    const res = await request.get("/admin/role/page", { params });
-    return res.data;
-  } catch (error) {
-    return Promise.reject(error);
-  }
-}
-export async function getAllRole(){
-  try {
-    const res = await request.get("/admin/role/list");
+    const res = await request.get("/role/page", { params });
     return res.data;
   } catch (error) {
     return Promise.reject(error);
   }
 }
 
+// 根据ID查询角色
+export async function getRoleDetail(id) {
+  try {
+    const res = await request.get(`/role/${id}`);
+    return res.data;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
+// 获取所有角色列表
+export async function getAllRole() {
+  try {
+    const res = await request.get("/role/list");
+    return res.data;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
+// 创建角色
 export async function addRole(data) {
   try {
-    const res = await request.post("/admin/role/add", data);
+    const res = await request.post("/role", data);
     return res.data;
   } catch (error) {
     return Promise.reject(error);
   }
 }
 
-// 删除角色             
-export async function deleteRole(id) {
-    try {
-    const res = await request.delete(`/admin/role/delete/${id}`); 
-    return res.data;
-  } catch (error) {
-    return Promise.reject(error);
-  }
-}
 // 更新角色
 export async function updateRole(data) {
   try {
-    const res = await request.put("/admin/role/update", data);
+    const res = await request.put("/role", data);
     return res.data;
   } catch (error) {
     return Promise.reject(error);
   }
 }
 
-// 获取角色详情
-export async function getRoleDetail(id) {
+// 删除角色
+export async function deleteRole(id) {
   try {
-    const res = await request.get(`/admin/role/get/${id}`);
+    const res = await request.delete(`/role/${id}`);
     return res.data;
   } catch (error) {
     return Promise.reject(error);
   }
 }
 
-// 未角色分配权限
-export async function assignRolePermission(data) {
+// 批量删除角色
+export async function batchDeleteRole(ids) {
   try {
-    const res = await request.post("/admin/role/assignPermissions", data);
+    const res = await request.delete("/role", { params: { ids: ids.join(",") } });
+    return res.data;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
+// 给角色分配菜单
+export async function assignMenus(data) {
+  try {
+    const res = await request.post("/role/assignMenus", data);
     return res.data;
   } catch (error) {
     return Promise.reject(error);

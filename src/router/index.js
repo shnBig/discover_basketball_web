@@ -14,12 +14,13 @@ const componentMap = {
   '/admin': () => import('@/views/manager/ManagerView.vue'),
   '/role': () => import('@/views/role/RoleView.vue'),
   '/user': () => import('@/views/user/UserView.vue'),
-  '/permission': () => import('@/views/Permission/PermissionView.vue'),
+  '/menu': () => import('@/views/menu/MenuView.vue'),
   '/order': () => import('@/views/order/OrderView.vue'),
   '/product': () => import('@/views/product/ProductView.vue'),
   '/message': () => import('@/views/message/MessageView.vue'),
-  '/menu': () => import('@/views/menu/MenuView.vue'),
   '/court': () => import('@/views/court/CourtView.vue'),
+  '/city_config': () => import('@/views/city_config/CityConfigView.vue'),
+
 };
 
 /**
@@ -151,17 +152,28 @@ router.beforeEach(async (to, from) => {
     return true;
   }
 
-  if (token && !userStore.userInfo) {
-    try {
-      await userStore.getUserInfo();
-      const menus = await userStore.getMenuList();
-      loadDynamicRoutes(menus);
-      // 动态路由已添加，重新导航到当前目标（replace 避免重复历史记录）
-      return { path: to.path, query: to.query, hash: to.hash, replace: true };
-    } catch (error) {
-      userStore.logout();
-      NProgress.done();
-      return { path: '/login' };
+  if (token) {
+    // 没有 userInfo 时从 API 获取（localStorage 也没有的情况）
+    if (!userStore.userInfo) {
+      try {
+        await userStore.getUserInfo();
+      } catch (error) {
+        userStore.logout();
+        NProgress.done();
+        return { path: '/login' };
+      }
+    }
+    // 没有菜单/路由时获取并注册动态路由
+    if (!userStore.menus || userStore.menus.length === 0) {
+      try {
+        const menus = await userStore.getMenuList();
+        loadDynamicRoutes(menus);
+        return { path: to.path, query: to.query, hash: to.hash, replace: true };
+      } catch (error) {
+        userStore.logout();
+        NProgress.done();
+        return { path: '/login' };
+      }
     }
   }
 

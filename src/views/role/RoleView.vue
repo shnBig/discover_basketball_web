@@ -1,503 +1,293 @@
 <template>
-  <div class="permission-container">
-    <a-card :title="'角色列表'" class="">
-      <div class="flex justify-between">
-        <a-button type="primary" @click="showAddModal = true" class="mb-[20px]">
-          添加
-        </a-button>
-
-        <a-form layout="inline" :model="searchForm" class="search-form">
-          <a-form-item label="角色名称">
-            <a-input
-              v-model:value="searchForm.keyword"
-              placeholder="请输入角色名称"
-              @keyup.enter="handleSearch"
-              allowClear
-            />
-          </a-form-item>
-          <a-form-item>
+  <div class="p-6 space-y-4">
+    <!-- 搜索栏 -->
+    <a-card>
+      <a-form layout="inline" :model="searchForm" class="flex flex-wrap gap-4">
+        <a-form-item label="角色名称">
+          <a-input v-model:value="searchForm.name" placeholder="请输入角色名称" allowClear @keyup.enter="handleSearch" />
+        </a-form-item>
+        <a-form-item label="角色编码">
+          <a-input v-model:value="searchForm.code" placeholder="请输入角色编码" allowClear @keyup.enter="handleSearch" />
+        </a-form-item>
+        <a-form-item label="状态">
+          <a-select v-model:value="searchForm.status" placeholder="全部" allowClear style="width: 120px">
+            <a-select-option :value="1">启用</a-select-option>
+            <a-select-option :value="0">禁用</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item>
+          <a-space>
             <a-button type="primary" @click="handleSearch">搜索</a-button>
-          </a-form-item>
-        </a-form>
-      </div>
+            <a-button @click="handleReset">重置</a-button>
+          </a-space>
+        </a-form-item>
+      </a-form>
+    </a-card>
+
+    <!-- 表格 -->
+    <a-card title="角色列表">
+      <template #extra>
+        <a-button type="primary" @click="handleAdd">
+          <template #icon><plus-outlined /></template>
+          新增角色
+        </a-button>
+      </template>
 
       <BaseTable
         :columns="columns"
         :data-source="dataList"
         :pagination="pagination"
         :loading="loading"
+        :scroll-x="970"
         @change="handleTableChange"
       >
-        <template #createTime="{ text }">
-          {{ formatDate(text) }}
-        </template>
-        <template #permissions="{ record }">
-          <!-- 便利权限数组 -->
-          <div v-if="record.permissions.length > 0">
-            <a-tag
-              color="#2db7f5"
-              v-for="item in record.permissions"
-              :index="item.id"
-              :key="item.id"
-              class="m-1"
-              >{{ item.permissionName }}</a-tag
-            >
-          </div>
-          <div v-else>暂无权限</div>
+        <template #status="{ record }">
+          <a-tag :color="record.status === 1 ? 'green' : 'red'">
+            {{ record.status === 1 ? '启用' : '禁用' }}
+          </a-tag>
         </template>
         <template #action="{ record }">
           <a-space>
-            <a-button type="link" size="small" 
-              @click="handleEditClick(record)"
-              >编辑</a-button
-            >
-            <a-button danger type="link" size="small" @click="handleDeleteClick(record)"
-              >删除</a-button
-            >
+            <a-button type="link" size="small" @click="handleEdit(record)">编辑</a-button>
+            <a-button type="link" size="small" @click="handleAssignMenus(record)">分配菜单</a-button>
+            <a-popconfirm title="确认删除该角色？" @confirm="handleDelete(record.id)">
+              <a-button type="link" danger size="small">删除</a-button>
+            </a-popconfirm>
           </a-space>
         </template>
       </BaseTable>
     </a-card>
 
+    <!-- 新增/编辑弹窗 -->
     <a-modal
-      v-model:open="showAddModal"
-      title="添加角色"
-      :confirm-loading="addLoading"
-      ok-text="确定"
-      cancel-text="取消"
-      @ok="handleAdd"
-      @cancel="handleCancel"
+      v-model:open="modalVisible"
+      :title="isEdit ? '编辑角色' : '新增角色'"
+      :confirm-loading="modalLoading"
+      @ok="handleSubmit"
+      @cancel="modalVisible = false"
     >
-      <a-form :model="addForm" layout="vertical" class="add-form">
-        <a-form-item
-          label="角色名称"
-          :rules="[{ required: true, message: '请输入角色名称' }]"
-        >
-          <a-input
-            v-model:value="addForm.roleName"
-            placeholder="请输入角色名称"
-          />
+      <a-form ref="formRef" :model="form" :rules="rules" layout="vertical" class="mt-4">
+        <a-form-item label="角色名称" name="roleName">
+          <a-input v-model:value="form.roleName" placeholder="请输入角色名称" />
         </a-form-item>
-        <a-form-item
-          label="角色介绍"
-          :rules="[{ required: true, message: '请输入角色介绍' }]"
-        >
-          <a-input
-            v-model:value="addForm.description"
-            placeholder="请输入角色介绍"
-          />
+        <a-form-item label="角色编码" name="roleCode">
+          <a-input v-model:value="form.roleCode" placeholder="请输入角色编码，如 admin" />
         </a-form-item>
-        <!-- 选择关联权限 -->
-        <a-form-item
-          label="关联权限"
-          :rules="[{ required: true, message: '请选择关联权限' }]"
-        >
-          <a-select
-            v-model:value="addForm.permissionIds"
-            show-search
-            placeholder="请选择关联权限"
-            :options="permissionList"
-            :filter-option="filterOption"
-            mode="multiple"
-          ></a-select>
+        <a-form-item label="备注" name="description">
+          <a-textarea v-model:value="form.description" placeholder="请输入备注" :rows="3" />
+        </a-form-item>
+        <a-form-item label="状态">
+          <a-radio-group v-model:value="form.status">
+            <a-radio :value="1">启用</a-radio>
+            <a-radio :value="0">禁用</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item label="分配菜单">
+          <a-tree
+            v-if="menuTreeData.length"
+            checkable
+            :tree-data="menuTreeData"
+            :field-names="{ title: 'menuName', key: 'id', children: 'children' }"
+            v-model:checkedKeys="form.menuIds"
+            default-expand-all
+            :height="250"
+          />
+          <a-empty v-else description="暂无菜单数据" />
         </a-form-item>
       </a-form>
     </a-modal>
 
+    <!-- 分配菜单弹窗 -->
     <a-modal
-      v-model:open="showEditModal"
-      title="编辑角色"
-      :confirm-loading="editLoading"
-      ok-text="确定"
-      cancel-text="取消"
-      @ok="handleEdit"
-      @cancel="handleEditCancel"
+      v-model:open="menuVisible"
+      title="分配菜单权限"
+      :confirm-loading="menuLoading"
+      @ok="handleMenuSubmit"
+      @cancel="menuVisible = false"
+      width="500px"
     >
-      <a-form :model="editForm" layout="vertical" class="add-form">
-        <a-form-item
-          label="角色名称"
-          :rules="[{ required: true, message: '请输入角色名称' }]"
-        >
-          <a-input
-            v-model:value="editForm.roleName" 
-            placeholder="请输入角色名称"
-          />
-        </a-form-item>
-        <a-form-item
-          label="角色介绍"
-          :rules="[{ required: true, message: '请输入角色介绍' }]"
-        >
-          <a-input
-            v-model:value="editForm.description"
-            placeholder="请输入角色介绍"
-          />
-        </a-form-item>
-        <!-- 选择关联权限 -->
-        <a-form-item
-          label="关联权限"
-          :rules="[{ required: true, message: '请选择关联权限' }]"
-        >
-          <a-select
-            v-model:value="editForm.permissionIds"
-            show-search
-            placeholder="请选择关联权限"
-            :options="permissionList"
-            :filter-option="filterOption"
-            mode="multiple"
-          ></a-select>
-        </a-form-item>
-      </a-form>
-    </a-modal>
-
-    <a-modal
-      v-model:open="showDeleteModal"
-      title="确认删除"
-      :confirm-loading="deleteLoading"
-      ok-text="确定"
-      cancel-text="取消"
-      @ok="handleDeleteConfirm"
-      @cancel="showDeleteModal = false"
-    >
-      <p>
-        确定要删除角色 <strong>{{ deleteRecord?.roleName }}</strong> 吗？
-      </p>
+      <div class="mt-4 max-h-96 overflow-y-auto">
+        <a-tree
+          v-if="menuTreeData.length"
+          checkable
+          :tree-data="menuTreeData"
+          :field-names="{ title: 'menuName', key: 'id', children: 'children' }"
+          v-model:checkedKeys="selectedMenuIds"
+          default-expand-all
+        />
+        <a-empty v-else description="暂无菜单数据" />
+      </div>
     </a-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
-import { PlusOutlined } from "@ant-design/icons-vue";
-import {
-  getPermissionPage,
-  addPermission,
-  deletePermission,
-  updatePermission,
-  getPermissionDetail,
-  getAllPermission,
-} from "@/api/permission";
+import { ref, reactive, onMounted } from 'vue'
+import { PlusOutlined } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 import {
   getRolePage,
   addRole,
-  deleteRole,
   updateRole,
+  deleteRole,
   getRoleDetail,
-} from "@/api/role";
-import { message } from "ant-design-vue";
-import create from "@ant-design/icons-vue/lib/components/IconFont";
+  assignMenus,
+} from '@/api/role'
+import { getMenuTree } from '@/api/menu'
 
-const loading = ref(false);
-const addLoading = ref(false);
-const editLoading = ref(false);
-const deleteLoading = ref(false);
-const showAddModal = ref(false);
-const showEditModal = ref(false);
-const showDeleteModal = ref(false);
-const deleteRecord = ref(null);
-const editRecord = ref(null);
-const dataList = ref([]);
-const permissionList = ref([]);
-
-const searchForm = reactive({
-  keyword: "",
-});
-
-const addForm = reactive({
-  roleName: "",
-  description: "",
-  createTime: "",
-  permissionIds: [],
-});
-
-const editForm = reactive({
-  id: null,
-  roleName: "",
-  description: "",
-  createTime: "",
-  permissionIds: [],
-});
-
+// ---- 搜索 ----
+const searchForm = reactive({ name: '', code: '', status: undefined })
+const loading = ref(false)
+const dataList = ref([])
 const pagination = ref({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showTotal: (total) => `共 ${total} 条记录`,
-  pageSizeOptions: ["10", "20", "50", "100"],
-});
+  current: 1, pageSize: 10, total: 0,
+  showSizeChanger: true, showTotal: (t) => `共 ${t} 条`,
+})
 
 const columns = [
-  {
-    title: "角色名称",
-    dataIndex: "roleName",
-    key: "roleName",
-    width: 180,
-  },
-  {
-    title: "角色介绍",
-    dataIndex: "description",
-    key: "description",
-    width: 180,
-  },
-  {
-    title: "创建时间",
-    dataIndex: "createTime",
-    key: "createTime",
-    width: 160,
-    slots: { customRender: "createTime" },
-  },
-  {
-    title: "拥有权限",
-    dataIndex: "permissions",
-    key: "permissions",
-    width: 160,
-    slots: { customRender: "permissions" },
-  },
-  {
-    title: "操作",
-    key: "action",
-    width: 140,
-    slots: { customRender: "action" },
-  },
-];
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  return date.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-};
-
-const handleSearch = () => {
-  pagination.value.current = 1;
-  fetchData();
-};
-
-const handleTableChange = (paginationInfo) => {
-  pagination.value.current = paginationInfo.current;
-  pagination.value.pageSize = paginationInfo.pageSize;
-  fetchData();
-};
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
+  { title: '角色名称', dataIndex: 'roleName', key: 'roleName', width: 150 },
+  { title: '角色编码', dataIndex: 'roleCode', key: 'roleCode', width: 130 },
+  { title: '状态', dataIndex: 'status', key: 'status', width: 80, align: 'center', slots: { customRender: 'status' } },
+  { title: '备注', dataIndex: 'description', key: 'description', width: 150, ellipsis: true },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 180 },
+  { title: '操作', key: 'action', width: 220, fixed: 'right', slots: { customRender: 'action' } },
+]
 
 const fetchData = async () => {
-  loading.value = true;
+  loading.value = true
   try {
     const params = {
-      pageNum: pagination.value.current,
+      page: pagination.value.current,
       pageSize: pagination.value.pageSize,
-      keyword: searchForm.keyword || "",
-    };
-    const res = await getRolePage(params);
-    if (res && res.data) {
-      dataList.value = res.data.list || [];
-      pagination.value.total = res.data.total || 0;
+      ...searchForm,
     }
-  } catch (error) {
-    console.error("获取权限列表失败:", error);
+    Object.keys(params).forEach((k) => params[k] === undefined && delete params[k])
+    const res = await getRolePage(params)
+    if (res?.data) {
+      dataList.value = res.data.list || []
+      pagination.value.total = res.data.total || 0
+    }
+  } catch (e) {
+    console.error(e)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
+const handleSearch = () => { pagination.value.current = 1; fetchData() }
+const handleReset = () => {
+  Object.assign(searchForm, { name: '', code: '', status: undefined })
+  handleSearch()
+}
+const handleTableChange = (p) => {
+  pagination.value.current = p.current
+  pagination.value.pageSize = p.pageSize
+  fetchData()
+}
 
-const handleAdd = async () => {
-  if (!addForm.roleName || !addForm.description || !addForm.permissions) {
-    message.error("请填写必填字段");
-    return;
-  }
+// ---- 新增/编辑 ----
+const modalVisible = ref(false)
+const modalLoading = ref(false)
+const isEdit = ref(false)
+const formRef = ref(null)
 
-  addLoading.value = true;
+const defaultForm = () => ({ id: undefined, roleName: '', roleCode: '', description: '', status: 1, menuIds: [] })
+const form = reactive(defaultForm())
+
+const rules = {
+  roleName: [{ required: true, message: '请输入角色名称' }],
+  roleCode: [{ required: true, message: '请输入角色编码' }],
+}
+
+const handleAdd = () => {
+  Object.assign(form, defaultForm())
+  isEdit.value = false
+  modalVisible.value = true
+}
+
+const handleEdit = async (record) => {
+  isEdit.value = true
   try {
-    const data = {
-      ...addForm
-    };
-
-    const res = await addRole(data);
-    if (res.code === 200) {
-      message.success("添加成功");
-      showAddModal.value = false;
-      resetAddForm();
-      fetchData();
-    } else {
-      message.error(res.message || "添加失败");
+    const res = await getRoleDetail(record.id)
+    if (res?.data) {
+      Object.assign(form, res.data)
+      modalVisible.value = true
     }
-  } catch (error) {
-    console.error("添加权限失败:", error);
+  } catch (e) {
+    message.error('获取详情失败')
+  }
+}
+
+const handleSubmit = async () => {
+  try {
+    await formRef.value?.validate()
+    modalLoading.value = true
+    if (isEdit.value) {
+      await updateRole(form)
+      message.success('更新成功')
+    } else {
+      await addRole(form)
+      message.success('新增成功')
+    }
+    modalVisible.value = false
+    fetchData()
+  } catch (e) {
+    message.error('操作失败')
   } finally {
-    addLoading.value = false;
+    modalLoading.value = false
   }
-};
+}
 
-const handleCancel = () => {
-  showAddModal.value = false;
-  resetAddForm();
-};
-
-const resetAddForm = () => {
-  addForm.roleName = "";
-  addForm.description = "";
-  addForm.permissions = [];
-};
-
-const handleDeleteClick = (record) => {
-  deleteRecord.value = record;
-  showDeleteModal.value = true;
-};
-
-const handleDeleteConfirm = async () => {
-  if (!deleteRecord.value) return;
-
-  deleteLoading.value = true;
+// ---- 删除 ----
+const handleDelete = async (id) => {
   try {
-    const res = await deleteRole(deleteRecord.value.id);
-    if (res.code === 200) {
-      message.success("删除成功");
-      showDeleteModal.value = false;
-      deleteRecord.value = null;
-      fetchData();
-    } else {
-      message.error(res.message || "删除失败");
+    await deleteRole(id)
+    message.success('删除成功')
+    fetchData()
+  } catch (e) {
+    message.error('删除失败')
+  }
+}
+
+// ---- 分配菜单 ----
+const menuVisible = ref(false)
+const menuLoading = ref(false)
+const menuRoleId = ref(null)
+const selectedMenuIds = ref([])
+const menuTreeData = ref([])
+
+const loadMenuTree = async () => {
+  try {
+    const res = await getMenuTree()
+    if (res?.data) {
+      menuTreeData.value = res.data
     }
-  } catch (error) {
-    console.error("删除权限失败:", error);
+  } catch (e) { /* ignore */ }
+}
+
+const handleAssignMenus = (record) => {
+  menuRoleId.value = record.id
+  selectedMenuIds.value = record.menuIds || []
+  menuVisible.value = true
+}
+
+const handleMenuSubmit = async () => {
+  try {
+    menuLoading.value = true
+    await assignMenus({ roleId: menuRoleId.value, menuIds: selectedMenuIds.value })
+    message.success('分配菜单成功')
+    menuVisible.value = false
+    fetchData()
+  } catch (e) {
+    message.error('分配菜单失败')
   } finally {
-    deleteLoading.value = false;
+    menuLoading.value = false
   }
-};
-
-const handleEditClick = async (record) => {
-  editRecord.value = record;
-  editLoading.value = true;
-  try {
-    const res = await getRoleDetail(record.id);
-    if (res.code === 200 && res.data) {
-      const data = res.data;
-      editForm.id = data.id;
-      editForm.roleName = data.roleName;
-      editForm.description = data.description;
-      editForm.createTime = data.createTime || "";
-      editForm.permissionIds = data.permissionIds || [];
-      showEditModal.value = true;
-    } else {
-      message.error(res.message || "获取角色详情失败");
-    }
-  } catch (error) {
-    console.error("获取权限详情失败:", error);
-    message.error("获取权限详情失败");
-  } finally {
-    editLoading.value = false;
-  }
-};
-
-
-
-const handleEdit = async () => {
-  if (
-    !editForm.roleName ||
-    !editForm.description ||
-    !editForm.permissionIds
-  ) {
-    message.error("请填写必填字段");
-    return;
-  }
-
-  editLoading.value = true;
-  try {
-    const data = {
-      ...editForm
-    };
-
-    const res = await updateRole(data);
-    if (res.code === 200) {
-      message.success("更新成功");
-      showEditModal.value = false;
-      resetEditForm();
-      fetchData();
-    } else {
-      message.error(res.message || "更新失败");
-    }
-  } catch (error) {
-    console.error("更新权限失败:", error);
-  } finally {
-    editLoading.value = false;
-  }
-};
-
-const handleEditCancel = () => {
-  showEditModal.value = false;
-  resetEditForm();
-};
-
-const resetEditForm = () => {
-  editForm.id = null;
-  editForm.parentId = 0;
-  editForm.permissionName = "";
-  editForm.permissionCode = "";
-  editForm.menuType = null;
-  editForm.path = "";
-  editForm.component = "";
-  editForm.icon = "";
-  editForm.sortOrder = 0;
-  editForm.visible = true;
-};
-
-// 获取所有的权限
-const getPermissionList = async () => {
-  try {
-    const res = await getAllPermission();
-    if (res.code === 200 && res.data) {
-      permissionList.value = res.data.map((item) => ({
-        label: item.permissionName,
-        value: item.id,
-      }));
-    } else {
-      message.error(res.message || "获取权限列表失败");
-    }
-  } catch (error) {
-    console.error("获取权限列表失败:", error);
-    message.error("获取权限列表失败");
-  }
-};
-const filterOption = (input, option) => {
-  return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
-};
+}
 
 onMounted(() => {
-  fetchData();
-  getPermissionList();
-});
+  fetchData()
+  loadMenuTree()
+})
 </script>
-
-<style scoped>
-.permission-container {
-  padding: 20px;
-  padding-top: 0;
-  padding-bottom: 0;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.card {
-  margin-bottom: 20px;
-}
-
-.add-btn {
-  margin-bottom: 20px;
-}
-
-.search-form {
-  margin-bottom: 20px;
-}
-
-.add-form {
-  max-height: 400px;
-  overflow-y: auto;
-}
-</style>

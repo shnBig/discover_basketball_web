@@ -1,83 +1,60 @@
 // src/api/user.js
 import request from '@/api/http';
 
-export const getUserInfoApi = async () => {
-    try {
-        const res = await request.get("/admin/list");
-        return res.data;
-    } catch (error) {
-        return Promise.reject(error);
-    }
-}
+// 菜单路由（导航用）
 export const getMenuListApi = async () => {
-    try {
-        const res = await request.get("/menu/routes");
-        return res.data;
-    } catch (error) {
-        return Promise.reject(error);
-    }
+  try {
+    const res = await request.get("/menu/routes");
+    return res.data;
+  } catch (error) {
+    return Promise.reject(error);
+  }
 }
 
-// 获取用户列表
+// 分页查询小程序用户列表
 export async function getUserPage(params) {
   try {
-    const res = await request.post("/admin/page",  params );
+    const res = await request.get("/admin/user/page", { params });
     return res.data;
   } catch (error) {
     return Promise.reject(error);
   }
 }
 
-export async function addUser(data) {
+// 查询小程序用户详情
+export async function getUserDetail(id) {
   try {
-    const res = await request.post("/admin/add", data);
+    const res = await request.get(`/admin/user/${id}`);
     return res.data;
   } catch (error) {
     return Promise.reject(error);
   }
 }
 
-// 删除用户
-export async function deleteUser(id) {
-    try {
-    const res = await request.delete(`/admin/delete/${id}`);
-    return res.data;
-  } catch (error) {
-    return Promise.reject(error);
-  }
-}
-// 更新用户
-export async function updateUser(data) {
-  try {
-    const res = await request.put("/admin/update", data);
-    return res.data;
-  } catch (error) {
-    return Promise.reject(error);
-  }
-}
-//修改状态
+// 修改小程序用户状态（封禁/解封）
 export async function updateUserStatus(data) {
   try {
-    const res = await request.put("/admin/status", data);
-    return res.data;
-  } catch (error) {
-    return Promise.reject(error);
-  }
-}
-//修改密码
-export async function updateUserPassword(data){
-  try {
-    const res = await request.put("/admin/password", data);
+    const res = await request.put("/admin/user/status", data);
     return res.data;
   } catch (error) {
     return Promise.reject(error);
   }
 }
 
-// 获取用户详情
-export async function getUserDetail(id) {    
+// 删除小程序用户
+export async function deleteUser(id) {
   try {
-    const res = await request.get(`/admin/info/${id}`);
+    const res = await request.delete(`/admin/user/${id}`);  
+    return res.data;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
+// 批量删除小程序用户
+export async function batchDeleteUser(ids) {
+  try {
+    const res = await request.delete("/admin/user", { params: { ids: ids.join(",") } });
     return res.data;
   } catch (error) {
     return Promise.reject(error);

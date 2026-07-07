@@ -10,7 +10,7 @@
         <!--  -->
         <div class="flex items-center gap-4">
           <!-- 展示logo -->
-          <img src="/logo.png" alt="logo" class="size-10 rounded-full" />
+          <img src="https://backend-admin.tos-cn-beijing.volces.com/logo/logo.png" alt="logo" class="size-10 rounded-full" />
           <h2
             class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight -translate-y-[-3px]"
           >
