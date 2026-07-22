@@ -1,0 +1,1 @@
+import{_ as e}from"./_plugin-vue_export-helper-BCo6x5W8.js";import{a as o,c as a}from"./index-CH_wV4OJ.js";const s=e({__name:"HelloWorld",setup:e=>(e,s)=>(o(),a("div"))},[["__scopeId","data-v-0eee28fb"]]);export{s as default};

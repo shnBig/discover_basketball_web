@@ -7,8 +7,8 @@
     <!-- 封面图 -->
     <div class="court-card__cover">
       <img
-        v-if="court.imageUrls && court.imageUrls.length"
-        :src="court.imageUrls[0]"
+        v-if="coverImage"
+        :src="coverImage"
         :alt="court.name"
       />
       <div v-else class="court-card__cover-empty">🏀</div>
@@ -26,7 +26,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   court: {
     type: Object,
     required: true,
@@ -38,6 +40,24 @@ defineProps({
 })
 
 defineEmits(['click'])
+
+// 获取封面图：兼容 imageUrls 数组和 images 对象数组两种格式
+const coverImage = computed(() => {
+  const { imageUrls, images } = props.court
+
+  // 优先使用 imageUrls（简单字符串数组）
+  if (imageUrls && imageUrls.length > 0) {
+    return imageUrls[0]
+  }
+
+  // 其次使用 images（对象数组，找封面图）
+  if (images && images.length > 0) {
+    const cover = images.find(img => img.isCover === 1)
+    return cover?.imageUrl || images[0]?.imageUrl || ''
+  }
+
+  return ''
+})
 
 const statusLabelMap = { 0: '待审核', 1: '已上架', 2: '已下架', 3: '已驳回' }
 const statusColorMap = { 0: 'orange', 1: 'green', 2: 'default', 3: 'red' }

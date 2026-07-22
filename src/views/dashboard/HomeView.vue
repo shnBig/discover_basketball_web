@@ -1,151 +1,126 @@
 <template>
   <div class="space-y-6">
+    <!-- 核心指标卡片 -->
     <a-row :gutter="16">
-      <a-col :span="6">
+      <a-col :xs="12" :sm="8" :md="4" v-for="card in overviewCards" :key="card.key">
         <a-card class="stat-card" :loading="loading">
           <div class="stat-content">
             <div class="stat-info">
-              <div class="stat-label">总用户数</div>
-              <div class="stat-value">{{ formatNumber(statistics.userStatistics?.totalUsers || 0) }}</div>
-              <div class="stat-sub">今日新增 {{ statistics.userStatistics?.todayNewUsers || 0 }}</div>
+              <div class="stat-label">{{ card.label }}</div>
+              <div class="stat-value">{{ formatNumber(card.value) }}</div>
+              <div class="stat-sub" v-if="card.sub">{{ card.sub }}</div>
             </div>
-            <div class="stat-icon users">
-              <UsergroupAddOutlined />
-            </div>
-          </div>
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card class="stat-card" :loading="loading">
-          <div class="stat-content">
-            <div class="stat-info">
-              <div class="stat-label">商品总数</div>
-              <div class="stat-value">{{ formatNumber(statistics.productStatistics?.totalProducts || 0) }}</div>
-              <div class="stat-sub">待审核 {{ statistics.productStatistics?.pendingAuditCount || 0 }}</div>
-            </div>
-            <div class="stat-icon products">
-              <ShoppingOutlined />
-            </div>
-          </div>
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card class="stat-card" :loading="loading">
-          <div class="stat-content">
-            <div class="stat-info">
-              <div class="stat-label">今日订单</div>
-              <div class="stat-value">{{ statistics.orderStatistics?.todayOrders || 0 }}</div>
-              <div class="stat-sub">总订单 {{ formatNumber(statistics.orderStatistics?.totalOrders || 0) }}</div>
-            </div>
-            <div class="stat-icon orders">
-              <ShoppingCartOutlined />
-            </div>
-          </div>
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card class="stat-card" :loading="loading">
-          <div class="stat-content">
-            <div class="stat-info">
-              <div class="stat-label">今日交易额</div>
-              <div class="stat-value">¥{{ formatNumber(statistics.orderStatistics?.todayGmv || 0) }}</div>
-              <div class="stat-sub">总GMV ¥{{ formatNumber(statistics.orderStatistics?.totalGmv || 0) }}</div>
-            </div>
-            <div class="stat-icon gmv">
-              <AccountBookOutlined />
+            <div class="stat-icon" :class="card.iconClass">
+              <component :is="card.icon" />
             </div>
           </div>
         </a-card>
       </a-col>
     </a-row>
 
+    <!-- 状态分布 + 来源分布 -->
     <a-row :gutter="16">
-      <a-col :span="12">
-        <a-card title="用户统计" :loading="loading">
-          <a-descriptions :column="2" bordered size="small">
-            <a-descriptions-item label="总用户数">{{ formatNumber(statistics.userStatistics?.totalUsers || 0) }}</a-descriptions-item>
-            <a-descriptions-item label="商家数量">{{ statistics.userStatistics?.sellerCount || 0 }}</a-descriptions-item>
-            <a-descriptions-item label="今日新增">{{ statistics.userStatistics?.todayNewUsers || 0 }}</a-descriptions-item>
-            <a-descriptions-item label="7日活跃">{{ statistics.userStatistics?.activeUsers7d || 0 }}</a-descriptions-item>
-            <a-descriptions-item label="30日活跃">{{ statistics.userStatistics?.activeUsers30d || 0 }}</a-descriptions-item>
-          </a-descriptions>
+      <a-col :xs="24" :md="12">
+        <a-card title="球场状态分布" :loading="loading" class="chart-card">
+          <v-chart class="chart" :option="statusPieOption" autoresize />
         </a-card>
       </a-col>
-      <a-col :span="12">
-        <a-card title="商品统计" :loading="loading">
-          <a-descriptions :column="2" bordered size="small">
-            <a-descriptions-item label="商品总数">{{ formatNumber(statistics.productStatistics?.totalProducts || 0) }}</a-descriptions-item>
-            <a-descriptions-item label="已上架">{{ statistics.productStatistics?.onSaleCount || 0 }}</a-descriptions-item>
-            <a-descriptions-item label="待审核">{{ statistics.productStatistics?.pendingAuditCount || 0 }}</a-descriptions-item>
-            <a-descriptions-item label="今日新增">{{ statistics.productStatistics?.todayNewProducts || 0 }}</a-descriptions-item>
-            <a-descriptions-item label="缺货商品">{{ statistics.productStatistics?.outOfStockCount || 0 }}</a-descriptions-item>
-          </a-descriptions>
+      <a-col :xs="24" :md="12">
+        <a-card title="来源分布" :loading="loading" class="chart-card">
+          <v-chart class="chart" :option="sourcePieOption" autoresize />
         </a-card>
       </a-col>
     </a-row>
 
-    <a-row :gutter="16">
-      <a-col :span="12">
-        <a-card title="订单统计" :loading="loading">
-          <a-descriptions :column="3" bordered size="small">
-            <a-descriptions-item label="待支付">{{ statistics.orderStatistics?.pendingPaymentCount || 0 }}</a-descriptions-item>
-            <a-descriptions-item label="待发货">{{ statistics.orderStatistics?.pendingDeliveryCount || 0 }}</a-descriptions-item>
-            <a-descriptions-item label="已完成">{{ statistics.orderStatistics?.completedOrders || 0 }}</a-descriptions-item>
-            <a-descriptions-item label="今日交易额">¥{{ formatNumber(statistics.orderStatistics?.todayGmv || 0) }}</a-descriptions-item>
-            <a-descriptions-item label="本月交易额">¥{{ formatNumber(statistics.orderStatistics?.monthGmv || 0) }}</a-descriptions-item>
-            <a-descriptions-item label="总交易额">¥{{ formatNumber(statistics.orderStatistics?.totalGmv || 0) }}</a-descriptions-item>
-          </a-descriptions>
-        </a-card>
-      </a-col>
-      <a-col :span="12">
-        <a-card title="内容审核统计" :loading="loading">
-          <a-descriptions :column="2" bordered size="small">
-            <a-descriptions-item label="待审核">{{ statistics.auditStatistics?.pendingAuditCount || 0 }}</a-descriptions-item>
-            <a-descriptions-item label="今日通过">{{ statistics.auditStatistics?.todayApprovedCount || 0 }}</a-descriptions-item>
-            <a-descriptions-item label="今日驳回">{{ statistics.auditStatistics?.todayRejectedCount || 0 }}</a-descriptions-item>
-            <a-descriptions-item label="AI通过率">{{ statistics.auditStatistics?.aiPassRate || 0 }}%</a-descriptions-item>
-            <a-descriptions-item label="人工通过率">{{ statistics.auditStatistics?.manualPassRate || 0 }}%</a-descriptions-item>
-          </a-descriptions>
-        </a-card>
-      </a-col>
-    </a-row>
-
+    <!-- 近N日趋势 -->
     <a-row :gutter="16">
       <a-col :span="24">
-        <a-card title="系统监控" :loading="loading">
-          <a-descriptions :column="4" bordered size="small">
-            <a-descriptions-item label="在线用户">
-              <a-badge status="success" :text="statistics.systemStatistics?.onlineUsers || 0 + ' 人'" />
-            </a-descriptions-item>
-            <a-descriptions-item label="今日API请求">{{ formatNumber(statistics.systemStatistics?.todayApiRequests || 0) }}</a-descriptions-item>
-            <a-descriptions-item label="Redis命中率">{{ statistics.systemStatistics?.redisHitRate || 0 }}%</a-descriptions-item>
-            <a-descriptions-item label="平均响应时间">{{ statistics.systemStatistics?.avgResponseTime || 0 }} ms</a-descriptions-item>
-          </a-descriptions>
+        <a-card :loading="loading">
+          <template #title>
+            <div class="flex items-center justify-between">
+              <span>新增球场趋势</span>
+              <a-segmented v-model:value="trendDays" :options="trendOptions" @change="fetchData" />
+            </div>
+          </template>
+          <v-chart class="chart" :option="trendLineOption" autoresize />
         </a-card>
       </a-col>
     </a-row>
 
+    <!-- 城市排行 + 材质分布 -->
     <a-row :gutter="16">
-      <a-col :span="12">
-        <a-card :loading="trendLoading">
-          <template #title>
-            <div class="flex items-center justify-between">
-              <span>用户注册趋势</span>
-              <a-segmented v-model:value="userTrendDays" :options="trendOptions" @change="fetchUserTrend" />
-            </div>
-          </template>
-          <v-chart class="chart" :option="userTrendOption" autoresize />
+      <a-col :xs="24" :md="14">
+        <a-card title="城市球场排行 Top10" :loading="loading" class="chart-card">
+          <v-chart class="chart" :option="cityBarOption" autoresize />
         </a-card>
       </a-col>
-      <a-col :span="12">
-        <a-card :loading="trendLoading">
+      <a-col :xs="24" :md="10">
+        <a-card title="场地材质分布" :loading="loading" class="chart-card">
+          <v-chart class="chart" :option="materialBarOption" autoresize />
+        </a-card>
+      </a-col>
+    </a-row>
+
+    <!-- 待审核 + 热门球场 -->
+    <a-row :gutter="16">
+      <a-col :xs="24" :md="12">
+        <a-card :loading="loading">
           <template #title>
             <div class="flex items-center justify-between">
-              <span>订单交易趋势</span>
-              <a-segmented v-model:value="orderTrendDays" :options="trendOptions" @change="fetchOrderTrend" />
+              <span>最新待审核</span>
+              <a-button type="link" size="small" @click="goToAuditList">全部待审核</a-button>
             </div>
           </template>
-          <v-chart class="chart" :option="orderTrendOption" autoresize />
+          <a-table
+            :columns="pendingColumns"
+            :data-source="data.pendingReviews"
+            :pagination="false"
+            size="small"
+            :scroll="{ x: 400 }"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'action'">
+                <a-button type="link" size="small" @click="goToAudit(record)">去审核</a-button>
+              </template>
+            </template>
+          </a-table>
+        </a-card>
+      </a-col>
+      <a-col :xs="24" :md="12">
+        <a-card title="热门球场 Top10" :loading="loading">
+          <a-table
+            :columns="hotColumns"
+            :data-source="data.hotCourts"
+            :pagination="false"
+            size="small"
+            :scroll="{ x: 400 }"
+          />
+        </a-card>
+      </a-col>
+    </a-row>
+
+    <!-- 近期动态 + 活跃用户 -->
+    <a-row :gutter="16">
+      <a-col :xs="24" :md="14">
+        <a-card title="近期动态" :loading="loading">
+          <a-table
+            :columns="logColumns"
+            :data-source="data.recentLogs"
+            :pagination="false"
+            size="small"
+            :scroll="{ x: 500 }"
+          />
+        </a-card>
+      </a-col>
+      <a-col :xs="24" :md="10">
+        <a-card title="活跃用户 Top5" :loading="loading">
+          <a-table
+            :columns="userColumns"
+            :data-source="data.activeUsers"
+            :pagination="false"
+            size="small"
+            :scroll="{ x: 360 }"
+          />
         </a-card>
       </a-col>
     </a-row>
@@ -153,185 +128,222 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { UsergroupAddOutlined, ShoppingOutlined, ShoppingCartOutlined, AccountBookOutlined } from '@ant-design/icons-vue';
-import { getDashboardData, getUserTrend, getOrderTrend } from '@/api/dashboard';
+import { ref, computed, onMounted } from 'vue';
+import {
+  EnvironmentOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  UserOutlined,
+  PlusCircleOutlined,
+} from '@ant-design/icons-vue';
+import { getDashboardData } from '@/api/dashboard';
+import { useRouter } from 'vue-router';
 import VChart from 'vue-echarts';
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
-import { LineChart, BarChart } from 'echarts/charts';
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components';
+import { LineChart, BarChart, PieChart } from 'echarts/charts';
+import {
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  TitleComponent,
+} from 'echarts/components';
 
-use([CanvasRenderer, LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent]);
+use([CanvasRenderer, LineChart, BarChart, PieChart, GridComponent, TooltipComponent, LegendComponent, TitleComponent]);
 
+const router = useRouter();
 const loading = ref(false);
-const trendLoading = ref(false);
-const statistics = ref({
-  userStatistics: {},
-  productStatistics: {},
-  orderStatistics: {},
-  auditStatistics: {},
-  systemStatistics: {}
-});
-
+const trendDays = ref(7);
 const trendOptions = [
   { label: '7天', value: 7 },
   { label: '30天', value: 30 },
-  { label: '90天', value: 90 }
+  { label: '90天', value: 90 },
 ];
 
-const userTrendDays = ref(7);
-const orderTrendDays = ref(7);
-
-const userTrendData = ref([]);
-const orderTrendData = ref([]);
-
-const userTrendOption = ref({});
-const orderTrendOption = ref({});
+const data = ref({
+  overview: {},
+  statusDistribution: [],
+  sourceDistribution: [],
+  materialDistribution: [],
+  cityTop10: [],
+  dailyTrend: [],
+  pendingReviews: [],
+  hotCourts: [],
+  recentLogs: [],
+  activeUsers: [],
+});
 
 const formatNumber = (num) => {
-  if (!num && num !== 0) return '0';
+  if (num == null) return '0';
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
-const buildUserTrendOption = (data) => {
-  const dates = data.map(item => item.date);
-  const counts = data.map(item => item.count);
+// ---- 核心指标卡片 ----
+const overviewCards = computed(() => {
+  const o = data.value.overview || {};
+  return [
+    { key: 'total', label: '球场总数', value: o.totalCourts, icon: EnvironmentOutlined, iconClass: 'total' },
+    { key: 'pending', label: '待审核', value: o.pendingCourts, icon: ClockCircleOutlined, iconClass: 'pending' },
+    { key: 'published', label: '已上架', value: o.publishedCourts, icon: CheckCircleOutlined, iconClass: 'published' },
+    { key: 'users', label: '小程序用户', value: o.totalUsers, icon: UserOutlined, iconClass: 'users' },
+    { key: 'today', label: '今日新增', value: o.todayNewCourts, sub: '球场', icon: PlusCircleOutlined, iconClass: 'today' },
+  ];
+});
+
+// ---- 图表配置 ----
+const statusPieOption = computed(() => buildPie(data.value.statusDistribution, ['#faad14', '#52c41a', '#1890ff', '#ff4d4f']));
+const sourcePieOption = computed(() => buildPie(data.value.sourceDistribution, ['#1890ff', '#52c41a', '#faad14', '#ff4d4f', '#722ed1']));
+
+const trendLineOption = computed(() => {
+  const trend = data.value.dailyTrend || [];
   return {
-    tooltip: {
-      trigger: 'axis',
-      formatter: '{b}<br/>注册用户: {c} 人'
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: dates
-    },
-    yAxis: {
-      type: 'value',
-      name: '用户数'
-    },
-    series: [
-      {
-        name: '注册用户',
-        type: 'line',
-        smooth: true,
-        data: counts,
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(24, 144, 255, 0.4)' },
-              { offset: 1, color: 'rgba(24, 144, 255, 0.05)' }
-            ]
-          }
+    tooltip: { trigger: 'axis' },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'category', boundaryGap: false, data: trend.map(i => i.date) },
+    yAxis: { type: 'value', name: '新增数', minInterval: 1 },
+    series: [{
+      type: 'line',
+      smooth: true,
+      data: trend.map(i => i.count),
+      areaStyle: {
+        color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: 'rgba(24, 144, 255, 0.4)' },
+            { offset: 1, color: 'rgba(24, 144, 255, 0.05)' },
+          ],
         },
-        lineStyle: { color: '#1890ff', width: 2 },
-        itemStyle: { color: '#1890ff' }
-      }
-    ]
+      },
+      lineStyle: { color: '#1890ff', width: 2 },
+      itemStyle: { color: '#1890ff' },
+    }],
   };
-};
+});
 
-const buildOrderTrendOption = (data) => {
-  const dates = data.map(item => item.date);
-  const counts = data.map(item => item.count);
+const cityBarOption = computed(() => {
+  const list = data.value.cityTop10 || [];
   return {
-    tooltip: {
-      trigger: 'axis',
-      formatter: '{b}<br/>订单数量: {c} 单'
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: dates
-    },
-    yAxis: {
-      type: 'value',
-      name: '订单数'
-    },
-    series: [
-      {
-        name: '订单数量',
-        type: 'bar',
-        data: counts,
-        barWidth: '60%',
-        itemStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: '#52c41a' },
-              { offset: 1, color: '#b7eb8f' }
-            ]
-          },
-          borderRadius: [4, 4, 0, 0]
-        }
-      }
-    ]
+    tooltip: { trigger: 'axis' },
+    grid: { left: '3%', right: '8%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'value', name: '球场数', minInterval: 1 },
+    yAxis: { type: 'category', data: list.map(i => i.name).reverse() },
+    series: [{
+      type: 'bar',
+      data: list.map(i => i.value).reverse(),
+      barWidth: '60%',
+      itemStyle: {
+        color: { type: 'linear', x: 0, y: 0, x2: 1, y2: 0,
+          colorStops: [
+            { offset: 0, color: '#1890ff' },
+            { offset: 1, color: '#69c0ff' },
+          ],
+        },
+        borderRadius: [0, 4, 4, 0],
+      },
+      label: { show: true, position: 'right', fontSize: 12 },
+    }],
   };
+});
+
+const materialBarOption = computed(() => {
+  const list = data.value.materialDistribution || [];
+  return {
+    tooltip: { trigger: 'axis' },
+    grid: { left: '3%', right: '8%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'category', data: list.map(i => i.name), axisLabel: { rotate: 30 } },
+    yAxis: { type: 'value', name: '球场数', minInterval: 1 },
+    series: [{
+      type: 'bar',
+      data: list.map(i => i.value),
+      barWidth: '50%',
+      itemStyle: {
+        color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: '#52c41a' },
+            { offset: 1, color: '#b7eb8f' },
+          ],
+        },
+        borderRadius: [4, 4, 0, 0],
+      },
+    }],
+  };
+});
+
+function buildPie(list, colors) {
+  return {
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    legend: { bottom: 0, type: 'scroll' },
+    color: colors,
+    series: [{
+      type: 'pie',
+      radius: ['40%', '65%'],
+      center: ['50%', '45%'],
+      avoidLabelOverlap: true,
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+      label: { show: true, formatter: '{b}\n{d}%' },
+      data: list,
+    }],
+  };
+}
+
+// ---- 操作类型映射 ----
+const actionMap = { 1: '新增', 2: '编辑', 3: '删除', 4: '审核' };
+
+// ---- 表格列定义 ----
+const pendingColumns = [
+  { title: '球场名称', dataIndex: 'name', key: 'name', ellipsis: true },
+  { title: '地址', dataIndex: 'address', key: 'address', ellipsis: true },
+  { title: '提交时间', dataIndex: 'createTime', key: 'createTime', width: 160 },
+  { title: '操作', key: 'action', width: 80, align: 'center' },
+];
+
+const hotColumns = [
+  { title: '排名', key: 'rank', width: 60, customRender: ({ index }) => index + 1 },
+  { title: '球场名称', dataIndex: 'name', key: 'name', ellipsis: true },
+  { title: '浏览', dataIndex: 'viewCount', key: 'viewCount', width: 70 },
+  { title: '收藏', dataIndex: 'favoriteCount', key: 'favoriteCount', width: 70 },
+  { title: '打卡', dataIndex: 'checkinCount', key: 'checkinCount', width: 70 },
+];
+
+const logColumns = [
+  { title: '球场', dataIndex: 'courtName', key: 'courtName', ellipsis: true },
+  { title: '操作', dataIndex: 'action', key: 'action', width: 80, customRender: ({ text }) => actionMap[text] || text },
+  { title: '操作人', dataIndex: 'adminName', key: 'adminName', width: 80 },
+  { title: '时间', dataIndex: 'createTime', key: 'createTime', width: 160 },
+];
+
+const userColumns = [
+  { title: '排名', key: 'rank', width: 60, customRender: ({ index }) => index + 1 },
+  { title: '用户', dataIndex: 'nickname', key: 'nickname', ellipsis: true },
+  { title: '提交数', dataIndex: 'totalSubmit', key: 'totalSubmit', width: 80 },
+  { title: '通过数', dataIndex: 'passCount', key: 'passCount', width: 80 },
+];
+
+// ---- 跳转审核 ----
+const goToAuditList = () => {
+  router.push({ path: '/court/court_map', query: { status: 0 } });
 };
 
-const fetchStatistics = async () => {
+const goToAudit = (record) => {
+  router.push({ path: '/court/court_map', query: { name: record.name } });
+};
+
+// ---- 数据获取 ----
+const fetchData = async () => {
   loading.value = true;
   try {
-    const res = await getDashboardData();
-    if (res && res.code === 200 && res.data) {
-      statistics.value = res.data;
+    const res = await getDashboardData(trendDays.value);
+    if (res?.code === 200 && res.data) {
+      data.value = res.data;
     }
   } catch (error) {
-    console.error('获取仪表盘统计数据失败:', error);
+    console.error('获取仪表盘数据失败:', error);
   } finally {
     loading.value = false;
   }
 };
 
-const fetchUserTrend = async () => {
-  trendLoading.value = true;
-  try {
-    const res = await getUserTrend(userTrendDays.value);
-    if (res && res.code === 200 && res.data) {
-      userTrendData.value = res.data;
-      userTrendOption.value = buildUserTrendOption(res.data);
-    }
-  } catch (error) {
-    console.error('获取用户趋势数据失败:', error);
-  } finally {
-    trendLoading.value = false;
-  }
-};
-
-const fetchOrderTrend = async () => {
-  trendLoading.value = true;
-  try {
-    const res = await getOrderTrend(orderTrendDays.value);
-    if (res && res.code === 200 && res.data) {
-      orderTrendData.value = res.data;
-      orderTrendOption.value = buildOrderTrendOption(res.data);
-    }
-  } catch (error) {
-    console.error('获取订单趋势数据失败:', error);
-  } finally {
-    trendLoading.value = false;
-  }
-};
-
 onMounted(() => {
-  fetchStatistics();
-  fetchUserTrend();
-  fetchOrderTrend();
+  fetchData();
 });
 </script>
 
@@ -352,16 +364,17 @@ onMounted(() => {
 
 .stat-info {
   flex: 1;
+  min-width: 0;
 }
 
 .stat-label {
-  font-size: 14px;
+  font-size: 13px;
   color: #8c8c8c;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .stat-value {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
   color: #1f1f1f;
   line-height: 1.2;
@@ -374,37 +387,61 @@ onMounted(() => {
 }
 
 .stat-icon {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 24px;
+  flex-shrink: 0;
 }
 
-.stat-icon.users {
+.stat-icon.total {
   background: #e6f7ff;
   color: #1890ff;
 }
 
-.stat-icon.products {
-  background: #fff1f0;
-  color: #ff4d4f;
-}
-
-.stat-icon.orders {
+.stat-icon.pending {
   background: #fff7e6;
-  color: #fa8c16;
+  color: #faad14;
 }
 
-.stat-icon.gmv {
+.stat-icon.published {
   background: #f6ffed;
   color: #52c41a;
+}
+
+.stat-icon.users {
+  background: #f9f0ff;
+  color: #722ed1;
+}
+
+.stat-icon.today {
+  background: #fff1f0;
+  color: #ff4d4f;
 }
 
 .chart {
   width: 100%;
   height: 300px;
+}
+
+.chart-card :deep(.ant-card-body) {
+  padding: 12px;
+}
+
+@media (max-width: 768px) {
+  .stat-value {
+    font-size: 20px;
+  }
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+  .chart {
+    height: 250px;
+  }
 }
 </style>

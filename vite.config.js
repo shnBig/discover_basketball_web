@@ -62,6 +62,7 @@ export default defineConfig(({ mode }) => {
   },
   // 构建优化（可选）
   build: {
+    outDir: 'frontend', // 输出目录
     chunkSizeWarningLimit: 1000, // 增大体积警告阈值
     minify: 'terser', // 更彻底的压缩
     terserOptions: {

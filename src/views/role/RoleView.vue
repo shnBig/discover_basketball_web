@@ -86,11 +86,13 @@
           <a-tree
             v-if="menuTreeData.length"
             checkable
+            check-strictly
             :tree-data="menuTreeData"
             :field-names="{ title: 'menuName', key: 'id', children: 'children' }"
             v-model:checkedKeys="form.menuIds"
             default-expand-all
             :height="250"
+            @check="onMenuCheck"
           />
           <a-empty v-else description="暂无菜单数据" />
         </a-form-item>
@@ -110,10 +112,12 @@
         <a-tree
           v-if="menuTreeData.length"
           checkable
+          check-strictly
           :tree-data="menuTreeData"
           :field-names="{ title: 'menuName', key: 'id', children: 'children' }"
           v-model:checkedKeys="selectedMenuIds"
           default-expand-all
+          @check="onAssignMenuCheck"
         />
         <a-empty v-else description="暂无菜单数据" />
       </div>
@@ -192,7 +196,15 @@ const modalLoading = ref(false)
 const isEdit = ref(false)
 const formRef = ref(null)
 
-const defaultForm = () => ({ id: undefined, roleName: '', roleCode: '', description: '', status: 1, menuIds: [] })
+const defaultForm = () => ({
+  id: undefined,
+  roleName: '',
+  roleCode: '',
+  description: '',
+  status: 1,
+  // check-strictly 模式需要 { checked: [], halfChecked: [] } 格式
+  menuIds: { checked: [], halfChecked: [] }
+})
 const form = reactive(defaultForm())
 
 const rules = {
@@ -211,7 +223,12 @@ const handleEdit = async (record) => {
   try {
     const res = await getRoleDetail(record.id)
     if (res?.data) {
-      Object.assign(form, res.data)
+      // 后端返回的 menuIds 是数组，需要转成 check-strictly 格式
+      const data = { ...res.data }
+      if (Array.isArray(data.menuIds)) {
+        data.menuIds = { checked: data.menuIds, halfChecked: [] }
+      }
+      Object.assign(form, data)
       modalVisible.value = true
     }
   } catch (e) {
@@ -219,15 +236,36 @@ const handleEdit = async (record) => {
   }
 }
 
+// 提交时收集所有选中的 ID（包括父级和子集）
+const collectFormMenuIds = () => {
+  const checkedSet = new Set(form.menuIds.checked || [])
+  const result = new Set()
+
+  const traverse = (nodes) => {
+    for (const node of nodes) {
+      if (checkedSet.has(node.id)) {
+        result.add(node.id)
+      }
+      if (node.children) {
+        traverse(node.children)
+      }
+    }
+  }
+
+  traverse(menuTreeData.value)
+  return [...result]
+}
+
 const handleSubmit = async () => {
   try {
     await formRef.value?.validate()
     modalLoading.value = true
+    const submitData = { ...form, menuIds: collectFormMenuIds() }
     if (isEdit.value) {
-      await updateRole(form)
+      await updateRole(submitData)
       message.success('更新成功')
     } else {
-      await addRole(form)
+      await addRole(submitData)
       message.success('新增成功')
     }
     modalVisible.value = false
@@ -254,7 +292,8 @@ const handleDelete = async (id) => {
 const menuVisible = ref(false)
 const menuLoading = ref(false)
 const menuRoleId = ref(null)
-const selectedMenuIds = ref([])
+// check-strictly 模式需要 { checked: [], halfChecked: [] } 格式
+const selectedMenuIds = ref({ checked: [], halfChecked: [] })
 const menuTreeData = ref([])
 
 const loadMenuTree = async () => {
@@ -266,16 +305,82 @@ const loadMenuTree = async () => {
   } catch (e) { /* ignore */ }
 }
 
+// 递归获取节点及其所有子节点的 ID
+const getAllChildIds = (node) => {
+  let ids = [node.id]
+  if (node.children) {
+    node.children.forEach(child => {
+      ids = ids.concat(getAllChildIds(child))
+    })
+  }
+  return ids
+}
+
+// 前端点击父级时联动选中所有子集
+const onMenuCheck = (_, { node, checked }) => {
+  const ids = getAllChildIds(node)
+  const currentChecked = form.menuIds.checked || []
+  if (checked) {
+    // 选中：添加该节点及所有子节点
+    const newKeys = new Set([...currentChecked, ...ids])
+    form.menuIds = { checked: [...newKeys], halfChecked: [] }
+  } else {
+    // 取消：移除该节点及所有子节点
+    const removeSet = new Set(ids)
+    form.menuIds = {
+      checked: currentChecked.filter(id => !removeSet.has(id)),
+      halfChecked: []
+    }
+  }
+}
+
+// 分配菜单弹窗的联动逻辑
+const onAssignMenuCheck = (_, { node, checked }) => {
+  const ids = getAllChildIds(node)
+  const currentChecked = selectedMenuIds.value.checked || []
+  if (checked) {
+    const newKeys = new Set([...currentChecked, ...ids])
+    selectedMenuIds.value = { checked: [...newKeys], halfChecked: [] }
+  } else {
+    const removeSet = new Set(ids)
+    selectedMenuIds.value = {
+      checked: currentChecked.filter(id => !removeSet.has(id)),
+      halfChecked: []
+    }
+  }
+}
+
+// 提交时收集所有选中的 ID（包括父级和子集）
+const collectAllCheckedIds = () => {
+  const checkedSet = new Set(selectedMenuIds.value.checked || [])
+  const result = new Set()
+
+  const traverse = (nodes) => {
+    for (const node of nodes) {
+      if (checkedSet.has(node.id)) {
+        result.add(node.id)
+      }
+      if (node.children) {
+        traverse(node.children)
+      }
+    }
+  }
+
+  traverse(menuTreeData.value)
+  return [...result]
+}
+
 const handleAssignMenus = (record) => {
   menuRoleId.value = record.id
-  selectedMenuIds.value = record.menuIds || []
+  selectedMenuIds.value = { checked: record.menuIds || [], halfChecked: [] }
   menuVisible.value = true
 }
 
 const handleMenuSubmit = async () => {
   try {
     menuLoading.value = true
-    await assignMenus({ roleId: menuRoleId.value, menuIds: selectedMenuIds.value })
+    const allIds = collectAllCheckedIds()
+    await assignMenus({ roleId: menuRoleId.value, menuIds: allIds })
     message.success('分配菜单成功')
     menuVisible.value = false
     fetchData()

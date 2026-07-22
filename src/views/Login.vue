@@ -7,14 +7,13 @@
       <header
         class="flex items-center justify-between border-b border-solid border-slate-200 dark:border-slate-800 px-10 py-3 bg-white dark:bg-slate-900"
       >
-        <!--  -->
         <div class="flex items-center gap-4">
           <!-- 展示logo -->
           <img src="https://backend-admin.tos-cn-beijing.volces.com/logo/logo.png" alt="logo" class="size-10 rounded-full" />
           <h2
             class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight -translate-y-[-3px]"
           >
-            校园二手电子设备平台后台管理系统
+            福尔摩篮后台管理系统
           </h2>
         </div>
         <a-button

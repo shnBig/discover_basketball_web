@@ -69,3 +69,13 @@ export async function batchDeleteCity(ids) {
     return Promise.reject(error);
   }
 }
+
+// 获取城市名称和城市编码
+export async function getCityNameAndCode() {
+  try {
+    const res = await request.get("/admin/city/city_and_code");
+    return res.data;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}

@@ -18,10 +18,22 @@ const componentMap = {
   '/order': () => import('@/views/order/OrderView.vue'),
   '/product': () => import('@/views/product/ProductView.vue'),
   '/message': () => import('@/views/message/MessageView.vue'),
-  '/court': () => import('@/views/court/CourtView.vue'),
+  '/court/court_map': () => import('@/views/court/CourtMap.vue'),
+  '/court/court_list': () => import('@/views/court/CourtList.vue'),
   '/city_config': () => import('@/views/city_config/CityConfigView.vue'),
-
 };
+
+/**
+ * 从组件路径提取组件名称（用于 keep-alive 匹配）
+ * 例如 '@/views/court/CourtView.vue' → 'CourtView'
+ * 如果 componentMap 中没有对应组件，则从 menuPath 生成名称（如 /role → role）
+ */
+function getComponentName(menuPath) {
+  const importPath = componentMap[menuPath]?.toString() || '';
+  const match = importPath.match(/\/([^/]+)\.vue/);
+  // 有组件名用组件名，没有则用路径生成（去掉前导斜杠）
+  return match ? match[1] : menuPath.replace(/^\//, '');
+}
 
 /**
  * 获取组件，映射中找不到时返回占位组件
@@ -77,56 +89,48 @@ const router = createRouter({
  */
 export function loadDynamicRoutes(menus) {
   menus.forEach(menu => {
-    const menuPath = menu.menuPath;
-    if (!menuPath) return; // 无路径的菜单（如"系统管理"父级）跳过
-
-    const existingRoute = router.getRoutes().find(r => r.path === menuPath);
-    if (existingRoute) return;
-
-    // 构建子路由
-    const children = [];
+    // 有子菜单：注册子路由，路径 = 父级menuPath + 子级menuPath
     if (menu.children && menu.children.length > 0) {
+      const parentPath = menu.menuPath || '';
       menu.children.forEach(child => {
         if (!child.menuPath) return;
-        const childExisting = router.getRoutes().find(r => r.path === child.menuPath);
-        if (!childExisting) {
-          children.push({
-            path: child.menuPath,
-            name: child.menuPath,
-            component: getComponent(child.menuPath),
-            meta: {
-              requiresAuth: true,
-              title: child.menuName,
-              keepAlive: false,
-            }
-          });
-        }
+        // 拼接完整路径，如 /court + /court_map = /court/court_map
+        const fullPath = parentPath + child.menuPath;
+        const existing = router.getRoutes().find(r => r.path === fullPath);
+        if (existing) return;
+
+        router.addRoute('layout', {
+          path: fullPath,
+          name: getComponentName(fullPath), // 用完整路径查找组件
+          component: getComponent(fullPath),
+          meta: {
+            requiresAuth: true,
+            title: child.menuName,
+            keepAlive: true,
+          }
+        });
       });
+      return;
     }
 
-    const newRoute = {
+    // 无子菜单：直接注册
+    const menuPath = menu.menuPath;
+    if (!menuPath) return;
+
+    const existing = router.getRoutes().find(r => r.path === menuPath);
+    if (existing) return;
+
+    router.addRoute('layout', {
       path: menuPath,
-      name: menuPath,
+      name: getComponentName(menuPath),
       component: getComponent(menuPath),
       meta: {
         requiresAuth: true,
         title: menu.menuName,
-        keepAlive: false,
+        keepAlive: true,
         icon: menu.icon,
-      },
-      children: children.length > 0 ? children : undefined,
-    };
-
-    router.addRoute('layout', newRoute);
-
-    // 如果有子路由，还需要单独注册每个子路由（确保直接访问子路径也能匹配）
-    if (children.length > 0) {
-      children.forEach(child => {
-        if (!router.getRoutes().find(r => r.path === child.path)) {
-          router.addRoute('layout', child);
-        }
-      });
-    }
+      }
+    });
   });
 }
 

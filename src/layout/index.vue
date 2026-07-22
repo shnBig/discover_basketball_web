@@ -20,25 +20,31 @@
         </div>
 
         <nav
-          class="order-3 md:order-2 w-full md:w-auto md:flex-1 md:min-w-0 mt-2 md:mt-0 border-t md:border-none border-slate-100 dark:border-slate-800"
+          class="nav-scroll order-3 md:order-2 w-full md:w-auto md:flex-1 md:min-w-0 mt-2 md:mt-0 border-t md:border-none border-slate-100 dark:border-slate-800"
         >
           <a-menu
             v-model:selectedKeys="current"
             mode="horizontal"
-            :ellipsis="true"
+            :ellipsis="false"
             class="bg-transparent border-none flex justify-center md:justify-start"
           >
             <a-menu-item key="home">
               <router-link to="/home">仪表盘</router-link>
             </a-menu-item>
             <template v-for="menu in userStore.menus" :key="menu.menuPath || menu.id">
-              <!-- 有子菜单的父级 -->
-              <a-sub-menu v-if="menu.children && menu.children.length > 0" :key="menu.id">
-                <template #title>{{ menu.menuName }}</template>
-                <a-menu-item v-for="child in menu.children" :key="child.menuPath">
-                  <router-link :to="child.menuPath">{{ child.menuName }}</router-link>
+              <!-- 有子菜单的父级：用 dropdown 保证手机端可点击 -->
+              <a-dropdown v-if="menu.children && menu.children.length > 0" :trigger="['click']" overlayClassName="menu-dropdown-overlay">
+                <a-menu-item :key="menu.id">
+                  {{ menu.menuName }} <DownOutlined style="font-size: 10px; margin-left: 2px;" />
                 </a-menu-item>
-              </a-sub-menu>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item v-for="child in menu.children" :key="menu.menuPath + child.menuPath">
+                      <router-link :to="menu.menuPath + child.menuPath">{{ child.menuName }}</router-link>
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
               <!-- 无子菜单的叶子节点 -->
               <a-menu-item v-else-if="menu.menuPath" :key="menu.menuPath">
                 <router-link :to="menu.menuPath">{{ menu.menuName }}</router-link>
@@ -72,7 +78,7 @@
             />
             <template #overlay>
               <a-menu>
-                <a-menu-item>个人中心</a-menu-item>
+                <!-- <a-menu-item>个人中心</a-menu-item> -->
                 <a-menu-item danger @click="handleQuit">退出登录</a-menu-item>
               </a-menu>
             </template>
@@ -86,7 +92,9 @@
       >
         <router-view v-slot="{ Component }" class="w-full">
           <transition name="fade-transform" mode="out-in">
-            <component :is="Component" />
+            <keep-alive :include="cachedViews">
+              <component :is="Component" />
+            </keep-alive>
           </transition>
         </router-view>
       </main>
@@ -113,19 +121,34 @@
 
 <script setup>
 import { ref, watch, computed } from "vue";
-import { BellOutlined, SettingOutlined } from "@ant-design/icons-vue";
+import { BellOutlined, SettingOutlined, DownOutlined } from "@ant-design/icons-vue";
 import { useUserStore } from "@/store/user";
 import { useRoute, useRouter } from "vue-router";
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
-const current = ref([route.name || "home"]);
+
+// 路由名称 → 菜单 key 映射（从路由 meta 中读取原始 menuPath）
+const getRouteKey = (routeName) => {
+  const route = router.getRoutes().find(r => r.name === routeName);
+  return route?.path || routeName;
+};
+
+const current = ref([getRouteKey(route.name) || "home"]);
 const avatarUrl = computed(() => userStore.userInfo?.avatarUrl|| JSON.parse(localStorage.getItem('userInfo') || '{}').avatarUrl);
+
+// 需要缓存的视图组件名称列表（根据路由 meta.keepAlive 判断）
+const cachedViews = computed(() => {
+  return router.getRoutes()
+    .filter(r => r.meta?.keepAlive)
+    .map(r => r.name)
+    .filter(Boolean);
+});
 // 当用户点击浏览器前进/后退，或者通过其他方式跳转路由时，同步更新菜单选中状态
 watch(
   () => route.name,
   (newName) => {
-    current.value = [newName];
+    current.value = [getRouteKey(newName)];
   },
 );
 const handleQuit = () => {
@@ -150,9 +173,40 @@ const handleQuit = () => {
   }
 }
 
+/* 手机端路由栏左右滑动 */
+@media (max-width: 768px) {
+  .nav-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  .nav-scroll::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+  :deep(.ant-menu-horizontal) {
+    flex-wrap: nowrap !important;
+    white-space: nowrap;
+    min-width: max-content !important;
+  }
+  :deep(.ant-menu-overflow) {
+    min-width: max-content !important;
+  }
+  /* 隐藏 Ant Design 溢出省略号按钮 */
+  :deep(.ant-menu-overflow-item-rest),
+  :deep(.ant-menu-ellipsis) {
+    display: none !important;
+  }
+}
+
 /* 移除 AntD 默认的底部边框，我们已经在 header 处理了 */
 :deep(.ant-menu) {
   border-bottom: none !important;
+}
+
+/* 子菜单下拉样式 */
+:global(.menu-dropdown-overlay) {
+  min-width: 120px;
 }
 
 /* 优化手机端菜单项的间距，防止太挤 */
