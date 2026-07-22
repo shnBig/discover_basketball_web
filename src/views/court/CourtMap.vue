@@ -626,6 +626,7 @@ import {
 } from "@/api/court";
 import { uploadFileImage } from "@/api/upload";
 import CourtCard from "@/components/CourtCard.vue";
+import NavigationManager from "@/utils/navigation";
 
 const statusLabelMap = { 0: "待审核", 1: "已上架", 2: "已下架", 3: "已驳回" };
 const statusColorMap = { 0: "orange", 1: "green", 2: "default", 3: "red" };
@@ -914,6 +915,7 @@ const addMarker = (court) => {
           <button onclick="window.__courtDetail(${c.id})" style="padding:4px 10px;background:#722ed1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">详情</button>
           <button onclick="window.__courtEdit(${c.id})" style="padding:4px 10px;background:#1677ff;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">编辑</button>
           <button onclick="window.__courtDelete(${c.id})" style="padding:4px 10px;background:#ff4d4f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">删除</button>
+          <button onclick="window.__courtNavigate(${c.id})" style="padding:4px 10px;background:#482d1a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">导航</button>
         </div>
       </div>`;
     infoWindow.setContent(html);
@@ -1343,6 +1345,17 @@ onMounted(async () => {
   window.__closeInfoWindow = () => {
     infoWindow?.close();
   };
+  window.__courtNavigate = async (id) => {
+    const court = markers.value
+      .find((m) => m.getExtData().id === id)
+      ?.getExtData();
+    if (court && court.latitude && court.longitude) {
+      const nav = new NavigationManager(court.latitude, court.longitude, court.name);
+      await nav.smartNavigate();
+    } else {
+      message.warning("该球场暂无坐标信息");
+    }
+  };
 
   // 手机端自动定位并检查城市
   if (isMobile()) {
@@ -1376,6 +1389,8 @@ onUnmounted(() => {
   delete window.__courtDelete
   delete window.__courtAudit
   delete window.__courtDetail
+  delete window.__courtNavigate
+  delete window.__closeInfoWindow
   delete window.__closeInfoWindow
 })
 </script>
