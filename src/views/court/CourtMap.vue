@@ -594,6 +594,14 @@
         </template>
       </a-spin>
     </a-modal>
+
+    <!-- 地图导航弹窗 -->
+    <MapNavigation
+      ref="mapNavRef"
+      :destination-lat="navTarget.lat"
+      :destination-lng="navTarget.lng"
+      :destination-name="navTarget.name"
+    />
   </div>
 </template>
 
@@ -626,7 +634,7 @@ import {
 } from "@/api/court";
 import { uploadFileImage } from "@/api/upload";
 import CourtCard from "@/components/CourtCard.vue";
-import NavigationManager from "@/utils/navigation";
+import MapNavigation from "@/components/MapNavigation.vue";
 
 const statusLabelMap = { 0: "待审核", 1: "已上架", 2: "已下架", 3: "已驳回" };
 const statusColorMap = { 0: "orange", 1: "green", 2: "default", 3: "red" };
@@ -646,6 +654,10 @@ const markers = ref([]);
 const addMode = ref(false);
 const searchCollapsed = ref(false);
 const activeCourtId = ref(null);
+
+// 导航弹窗
+const mapNavRef = ref(null);
+const navTarget = ref({ lat: 0, lng: 0, name: '' });
 let infoWindow = null;
 
 // ---- 开放城市列表 ----
@@ -1345,13 +1357,17 @@ onMounted(async () => {
   window.__closeInfoWindow = () => {
     infoWindow?.close();
   };
-  window.__courtNavigate = async (id) => {
+  window.__courtNavigate = (id) => {
     const court = markers.value
       .find((m) => m.getExtData().id === id)
       ?.getExtData();
     if (court && court.latitude && court.longitude) {
-      const nav = new NavigationManager(court.latitude, court.longitude, court.name);
-      await nav.smartNavigate();
+      navTarget.value = {
+        lat: court.latitude,
+        lng: court.longitude,
+        name: court.name
+      };
+      mapNavRef.value?.open();
     } else {
       message.warning("该球场暂无坐标信息");
     }
