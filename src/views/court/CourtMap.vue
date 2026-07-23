@@ -619,7 +619,7 @@ import {
   DatabaseOutlined,
   ReloadOutlined,
 } from "@ant-design/icons-vue";
-import { message, notification } from "ant-design-vue";
+import { message, notification, Modal } from "ant-design-vue";
 import AMapLoader from "@amap/amap-jsapi-loader";
 import { useUserStore } from "@/store/user";
 import { getOpenCityList } from "@/api/city";
@@ -1139,16 +1139,24 @@ const handleSubmit = async () => {
 };
 
 // ---- 删除 ----
-const handleDelete = async (id) => {
-  try {
-    await deleteCourt(id);
-    message.success("删除成功");
-    //关闭弹窗
-    infoWindow?.close();
-    fetchList();
-  } catch (e) {
-    message.error("删除失败");
-  }
+const handleDelete = (id) => {
+  Modal.confirm({
+    title: '确认删除',
+    content: '确定要删除这个球场吗？删除后无法恢复。',
+    okText: '删除',
+    okType: 'danger',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        await deleteCourt(id);
+        message.success("删除成功");
+        infoWindow?.close();
+        fetchList();
+      } catch (e) {
+        message.error("删除失败");
+      }
+    }
+  });
 };
 
 // ---- 审核 ----

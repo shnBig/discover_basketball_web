@@ -21,6 +21,7 @@ const componentMap = {
   '/court/court_map': () => import('@/views/court/CourtMap.vue'),
   '/court/court_list': () => import('@/views/court/CourtList.vue'),
   '/city_config': () => import('@/views/city_config/CityConfigView.vue'),
+  '/test': () => import('@/views/test/test2.vue'),
 };
 
 /**
