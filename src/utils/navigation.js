@@ -48,6 +48,11 @@ class NavigationManager {
     return this.device.type === 'mobile' || this.device.type === 'tablet';
   }
 
+  // 检测是否在微信中
+  isWeChat() {
+    return /MicroMessenger/i.test(navigator.userAgent);
+  }
+
   // 获取可用的地图列表
   getAvailableMaps() {
     const maps = [
@@ -146,6 +151,13 @@ class NavigationManager {
       throw new Error(`不支持的地图类型: ${mapType}`);
     }
 
+    // 微信环境直接打开网页版，不尝试唤起 App
+    if (this.isWeChat()) {
+      window.open(config.url());
+      return;
+    }
+
+    // 非微信环境尝试唤起 App
     try {
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
@@ -187,9 +199,15 @@ class NavigationManager {
     `;
 
     const title = document.createElement('div');
-    title.textContent = this.currentPosition
-      ? `📍 从我的位置导航到 ${this.name}`
-      : `📍 导航到 ${this.name}`;
+    const isWeChat = this.isWeChat();
+
+    if (isWeChat) {
+      title.innerHTML = `📍 导航到 ${this.name}<br><small style="color:#ff6b6b;font-weight:normal;">请在浏览器中打开以使用导航</small>`;
+    } else {
+      title.textContent = this.currentPosition
+        ? `📍 从我的位置导航到 ${this.name}`
+        : `📍 导航到 ${this.name}`;
+    }
     title.style.cssText = 'font-size: 18px; font-weight: bold; margin-bottom: 15px;';
     container.appendChild(title);
 
@@ -214,8 +232,8 @@ class NavigationManager {
       btn.onmouseout = () => {
         btn.style.background = '#f8f9fa';
       };
-      btn.onclick = () => {
-        this.navigate(map.key);
+      btn.onclick = async () => {
+        await this.navigate(map.key);
         document.body.removeChild(container);
       };
       container.appendChild(btn);
@@ -244,8 +262,14 @@ class NavigationManager {
 
   // 智能导航
   async smartNavigate() {
+    // 微信环境显示选择器（打开网页版）
+    if (this.isWeChat()) {
+      await this.showMapSelector();
+      return;
+    }
+
+    // 非微信环境
     if (this.isMobile()) {
-      // 移动端直接打开地图，不显示选择器
       if (this.isIOS()) {
         await this.navigate('apple');
       } else if (this.isAndroid()) {
