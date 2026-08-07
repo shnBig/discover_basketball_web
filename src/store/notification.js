@@ -13,30 +13,35 @@ export const useNotificationStore = defineStore('notification', {
       localStorage.setItem('notifications', JSON.stringify(this.notifications));
     },
     addNotification(data) {
-      this.notifications.unshift({
-        type: data.type,
-        id: data.id,
-        courtId: data.courtId,
-        courtName: data.courtName,
-        reportType: data.reportType,
-        reportTypeDesc: data.reportTypeDesc,
-        feedbackType: data.feedbackType,
-        feedbackTypeDesc: data.feedbackTypeDesc,
-        content: data.content,
-        message: data.message,
-        read: false,
-        timestamp: Date.now(),
-      });
+      this.notifications = [
+        {
+          type: data.type,
+          id: data.id,
+          courtId: data.courtId,
+          courtName: data.courtName,
+          reportType: data.reportType,
+          reportTypeDesc: data.reportTypeDesc,
+          feedbackType: data.feedbackType,
+          feedbackTypeDesc: data.feedbackTypeDesc,
+          content: data.content,
+          message: data.message,
+          read: false,
+          timestamp: Date.now(),
+        },
+        ...this.notifications,
+      ];
       this._persist();
     },
     markAsRead(index) {
       if (this.notifications[index]) {
-        this.notifications[index].read = true;
+        this.notifications = this.notifications.map((n, i) =>
+          i === index ? { ...n, read: true } : n
+        );
         this._persist();
       }
     },
     markAllAsRead() {
-      this.notifications.forEach(n => { n.read = true; });
+      this.notifications = this.notifications.map(n => ({ ...n, read: true }));
       this._persist();
     },
     clearAll() {

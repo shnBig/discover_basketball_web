@@ -163,9 +163,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { message } from 'ant-design-vue'
+import { useRoute } from 'vue-router'
 import { getFeedbackPage, getFeedbackDetail, handleFeedback, deleteFeedback } from '@/api/feedback'
+
+const route = useRoute()
 
 // ---- 搜索 ----
 const searchForm = reactive({ status: undefined, feedbackType: undefined, keyword: '' })
@@ -302,6 +305,13 @@ const handleDelete = async (id) => {
     message.error('删除失败')
   }
 }
+
+// ---- 从通知跳转过来时，自动打开详情 ----
+watch(() => route.query.id, (newId) => {
+  if (newId && route.path === '/user_feedback') {
+    handleViewDetail({ id: Number(newId) })
+  }
+}, { immediate: true })
 
 onMounted(() => {
   fetchData()

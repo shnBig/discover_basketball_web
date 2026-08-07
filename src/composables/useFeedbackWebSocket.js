@@ -6,18 +6,47 @@ let wsInstance = null;
 let reconnectTimer = null;
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 10;
-let connectedRef = null;
 
 export function useFeedbackWebSocket() {
   const connected = ref(false);
-  connectedRef = connected;
 
   const userStore = useUserStore();
   const notificationStore = useNotificationStore();
 
+  // 检查当前用户是否有某个路由的访问权限
+  function hasRouteAccess(targetPath) {
+    const menus = userStore.menus || [];
+    const menuPaths = [];
+    for (const menu of menus) {
+      if (menu.menuPath) menuPaths.push(menu.menuPath);
+      if (menu.children && menu.children.length > 0) {
+        const parentPath = menu.menuPath || '';
+        for (const child of menu.children) {
+          if (child.menuPath) menuPaths.push(parentPath + child.menuPath);
+        }
+      }
+    }
+    const hasAccess = menuPaths.includes(targetPath);
+    // 只在拒绝时打日志，方便排查
+    if (!hasAccess) {
+      console.log('[WS] 当前用户菜单路径:', menuPaths);
+      console.log('[WS] 需要但未找到的路径:', targetPath);
+    }
+    return hasAccess;
+  }
+
+  // 消息类型 → 所需路由映射
+  const typeRouteMap = {
+    'COURT_REPORT': '/court/court_report',
+    'APP_FEEDBACK': '/user_feedback',
+  };
+
   function getWsUrl() {
-    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-    const wsBase = apiBase.replace(/^http/, 'ws');
+    let wsBase = import.meta.env.VITE_WS_URL;
+    if (!wsBase) {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+      wsBase = apiBase.replace(/^http(s)?:/, (match, s) => s ? 'wss:' : 'ws:');
+    }
     const adminId = userStore.userInfo?.id;
     if (!adminId) {
       console.warn('[WS] 未获取到 adminId，无法建立 WebSocket 连接');
@@ -45,6 +74,11 @@ export function useFeedbackWebSocket() {
       try {
         const data = JSON.parse(event.data);
         console.log('[WS] 收到消息:', data);
+        const requiredRoute = typeRouteMap[data.type];
+        if (requiredRoute && !hasRouteAccess(requiredRoute)) {
+          console.log('[WS] 忽略消息 ' + data.type + '：用户无 ' + requiredRoute + ' 路由权限');
+          return;
+        }
         notificationStore.addNotification(data);
       } catch (e) {
         console.error('[WS] 消息解析失败:', e);
@@ -71,7 +105,7 @@ export function useFeedbackWebSocket() {
     if (reconnectTimer) clearTimeout(reconnectTimer);
 
     const delay = Math.min(2000 * Math.pow(2, reconnectAttempts), 60000);
-    console.log(`[WS] ${delay / 1000}s 后尝试重连 (第${reconnectAttempts + 1}次)`);
+    console.log('[WS] ' + (delay / 1000) + 's 后尝试重连 (第' + (reconnectAttempts + 1) + '次)');
 
     reconnectTimer = setTimeout(() => {
       reconnectAttempts++;
@@ -92,7 +126,6 @@ export function useFeedbackWebSocket() {
     reconnectAttempts = 0;
   }
 
-  // 心跳：每30秒发送ping
   let heartbeatTimer = null;
   function startHeartbeat() {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -102,10 +135,6 @@ export function useFeedbackWebSocket() {
       }
     }, 30000);
   }
-
-  // 在 open 后启动心跳，在 close 时清除
-  // 由于 connect 是外部管理，心跳在这里通过包装处理
-  // 简化处理：监听 connected 变化来管理心跳
 
   onUnmounted(() => {
     if (heartbeatTimer) {
@@ -117,7 +146,6 @@ export function useFeedbackWebSocket() {
   return { connected, connect, disconnect };
 }
 
-// 供外部直接调用的断开方法（例如退出登录时）
 export function disconnectWebSocket() {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);

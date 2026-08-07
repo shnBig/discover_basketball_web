@@ -32,19 +32,15 @@
               <router-link to="/home">仪表盘</router-link>
             </a-menu-item>
             <template v-for="menu in userStore.menus" :key="menu.menuPath || menu.id">
-              <!-- 有子菜单的父级：用 dropdown 保证手机端可点击 -->
-              <a-dropdown v-if="menu.children && menu.children.length > 0" :trigger="['click']" overlayClassName="menu-dropdown-overlay">
-                <a-menu-item :key="menu.id">
+              <!-- 有子菜单的父级 -->
+              <a-sub-menu v-if="menu.children && menu.children.length > 0" :key="menu.menuPath || menu.id">
+                <template #title>
                   {{ menu.menuName }} <DownOutlined style="font-size: 10px; margin-left: 2px;" />
-                </a-menu-item>
-                <template #overlay>
-                  <a-menu>
-                    <a-menu-item v-for="child in menu.children" :key="menu.menuPath + child.menuPath">
-                      <router-link :to="menu.menuPath + child.menuPath">{{ child.menuName }}</router-link>
-                    </a-menu-item>
-                  </a-menu>
                 </template>
-              </a-dropdown>
+                <a-menu-item v-for="child in menu.children" :key="child.menuPath">
+                  <router-link :to="menu.menuPath + child.menuPath">{{ child.menuName }}</router-link>
+                </a-menu-item>
+              </a-sub-menu>
               <!-- 无子菜单的叶子节点 -->
               <a-menu-item v-else-if="menu.menuPath" :key="menu.menuPath">
                 <router-link :to="menu.menuPath">{{ menu.menuName }}</router-link>
@@ -225,7 +221,7 @@ function formatNotifyTime(timestamp) {
 function handleNotificationClick(item, index) {
   notificationStore.markAsRead(index);
   if (item.type === 'COURT_REPORT') {
-    router.push({ path: '/court_report', query: { id: item.id, courtId: item.courtId } });
+    router.push({ path: '/court/court_report', query: { id: item.id, courtId: item.courtId } });
   } else if (item.type === 'APP_FEEDBACK') {
     router.push({ path: '/user_feedback', query: { id: item.id } });
   }

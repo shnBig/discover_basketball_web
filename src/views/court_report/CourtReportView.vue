@@ -307,7 +307,7 @@ const handleDelete = async (id) => {
 
 // ---- 从通知跳转过来时，自动打开详情 ----
 watch(() => route.query.id, (newId) => {
-  if (newId) {
+  if (newId && route.path === '/court/court_report') {
     handleViewDetail({ id: Number(newId) })
   }
 }, { immediate: true })
