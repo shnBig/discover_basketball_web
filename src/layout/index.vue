@@ -57,11 +57,51 @@
         <div class="flex items-center gap-2 md:gap-4 order-2 md:order-3">
           <!-- 通知与设置 -->
           <div class="flex gap-1">
-            <a-button type="text" class="flex items-center justify-center">
-              <template #icon
-                ><div><BellOutlined class="text-lg md:text-xl" /></div
-              ></template>
-            </a-button>
+            <a-dropdown placement="bottomRight" :trigger="['click']" overlay-class-name="notification-dropdown-overlay">
+              <a-badge :count="notificationStore.unreadCount" :overflow-count="99" :offset="[-2, 2]">
+                <a-button type="text" class="flex items-center justify-center">
+                  <template #icon
+                    ><div><BellOutlined class="text-lg md:text-xl" /></div
+                  ></template>
+                </a-button>
+              </a-badge>
+              <template #overlay>
+                <div class="w-80 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
+                  <div class="flex justify-between items-center px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+                    <span class="font-semibold text-sm">消息通知</span>
+                    <a-button type="link" size="small" @click="handleMarkAllRead" v-if="notificationStore.unreadCount > 0">全部已读</a-button>
+                  </div>
+                  <div class="max-h-96 overflow-y-auto">
+                    <div v-if="notificationStore.notifications.length === 0" class="px-4 py-10 text-center text-gray-400 text-sm">
+                      <BellOutlined class="text-3xl mb-2" />
+                      <div>暂无消息</div>
+                    </div>
+                    <div
+                      v-for="(item, index) in notificationStore.notifications"
+                      :key="index"
+                      class="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer border-b border-slate-50 dark:border-slate-700 last:border-b-0 transition-colors"
+                      :class="{ 'bg-blue-50/50 dark:bg-blue-900/20': !item.read }"
+                      @click="handleNotificationClick(item, index)"
+                    >
+                      <div class="flex items-start gap-2">
+                        <span v-if="!item.read" class="w-2 h-2 mt-1.5 rounded-full bg-red-500 flex-shrink-0"></span>
+                        <span v-else class="w-2 h-2 mt-1.5 flex-shrink-0"></span>
+                        <div class="flex-1 min-w-0">
+                          <div class="text-sm font-medium truncate" :class="{ 'text-blue-600 dark:text-blue-400': !item.read, 'text-slate-700 dark:text-slate-300': item.read }">
+                            {{ item.type === 'COURT_REPORT' ? '球场问题反馈' : '小程序意见反馈' }}
+                          </div>
+                          <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{{ item.message }}</div>
+                          <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">{{ formatNotifyTime(item.timestamp) }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="px-4 py-2 border-t border-slate-100 dark:border-slate-700 text-center" v-if="notificationStore.notifications.length > 0">
+                    <a-button type="link" size="small" @click="handleViewAllNotifications">查看全部通知</a-button>
+                  </div>
+                </div>
+              </template>
+            </a-dropdown>
             <a-button type="text" class="flex items-center justify-center">
               <template #icon
                 ><div><SettingOutlined class="text-lg md:text-xl" /></div
@@ -120,13 +160,17 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted, onUnmounted } from "vue";
 import { BellOutlined, SettingOutlined, DownOutlined } from "@ant-design/icons-vue";
 import { useUserStore } from "@/store/user";
+import { useNotificationStore } from "@/store/notification";
+import { useFeedbackWebSocket, disconnectWebSocket } from "@/composables/useFeedbackWebSocket";
+import { message } from "ant-design-vue";
 import { useRoute, useRouter } from "vue-router";
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
+const notificationStore = useNotificationStore();
 
 // 路由名称 → 菜单 key 映射（从路由 meta 中读取原始 menuPath）
 const getRouteKey = (routeName) => {
@@ -151,12 +195,62 @@ watch(
     current.value = [getRouteKey(newName)];
   },
 );
+
 const handleQuit = () => {
+  // 断开 WebSocket
+  disconnectWebSocket();
   //路由跳转
   router.replace("/login");
   //退出登录
   userStore.logout();
 };
+
+// ---- 消息通知 ----
+const { connect, disconnect } = useFeedbackWebSocket();
+
+function formatNotifyTime(timestamp) {
+  const now = Date.now();
+  const diff = now - timestamp;
+  if (diff < 60000) return '刚刚';
+  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+  const date = new Date(timestamp);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${month}-${day} ${hours}:${minutes}`;
+}
+
+function handleNotificationClick(item, index) {
+  notificationStore.markAsRead(index);
+  if (item.type === 'COURT_REPORT') {
+    router.push({ path: '/court_report', query: { id: item.id, courtId: item.courtId } });
+  } else if (item.type === 'APP_FEEDBACK') {
+    router.push({ path: '/user_feedback', query: { id: item.id } });
+  }
+}
+
+function handleMarkAllRead() {
+  notificationStore.markAllAsRead();
+  message.success('已全部标为已读');
+}
+
+function handleViewAllNotifications() {
+  notificationStore.markAllAsRead();
+  router.push('/user_feedback');
+}
+
+onMounted(() => {
+  const token = localStorage.getItem('token');
+  if (token && userStore.userInfo?.id) {
+    connect();
+  }
+});
+
+onUnmounted(() => {
+  disconnect();
+});
 </script>
 
 <style lang="postcss" scoped>
@@ -207,6 +301,11 @@ const handleQuit = () => {
 /* 子菜单下拉样式 */
 :global(.menu-dropdown-overlay) {
   min-width: 120px;
+}
+
+/* 消息通知下拉样式 */
+:global(.notification-dropdown-overlay) {
+  min-width: 320px;
 }
 
 /* 优化手机端菜单项的间距，防止太挤 */
