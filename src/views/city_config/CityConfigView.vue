@@ -38,9 +38,13 @@
         :data-source="dataList"
         :pagination="pagination"
         :loading="loading"
-        :scroll-x="700"
+        :scroll-x="800"
         @change="handleTableChange"
       >
+        <template #cityImage="{ record }">
+          <a-image v-if="record.cityImage" :src="record.cityImage" :width="60" :height="40" style="object-fit: cover; border-radius: 4px;" />
+          <span v-else>-</span>
+        </template>
         <template #isOpen="{ record }">
           <a-tag :color="record.isOpen === 1 ? 'green' : 'default'">
             {{ record.isOpen === 1 ? '已开放' : '未开放' }}
@@ -72,6 +76,20 @@
         <a-form-item label="城市名称" name="cityName">
           <a-input v-model:value="form.cityName" placeholder="请输入城市名称" />
         </a-form-item>
+        <a-form-item label="城市图片">
+          <a-upload
+            v-model:file-list="fileList"
+            list-type="picture-card"
+            :max-count="1"
+            :custom-request="handleUpload"
+            :remove="handleRemoveImage"
+          >
+            <div v-if="fileList.length < 1">
+              <plus-outlined />
+              <div class="mt-1 text-xs">上传图片</div>
+            </div>
+          </a-upload>
+        </a-form-item>
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="是否开放">
@@ -98,6 +116,7 @@ import { PlusOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { getCityPage, getCityDetail, addCity, updateCity, deleteCity } from '@/api/city'
 import { getCourtDataApi } from '@/api/amap/court';
+import { uploadFileImage } from '@/api/upload'
 // ---- 搜索 ----
 const searchForm = reactive({ cityCode: '', cityName: '', isOpen: undefined })
 const loading = ref(false)
@@ -111,6 +130,7 @@ const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
   { title: '城市编码', dataIndex: 'cityCode', key: 'cityCode', width: 120 },
   { title: '城市名称', dataIndex: 'cityName', key: 'cityName', width: 150 },
+  { title: '城市图片', dataIndex: 'cityImage', key: 'cityImage', width: 100, align: 'center', slots: { customRender: 'cityImage' } },
   { title: '是否开放', dataIndex: 'isOpen', key: 'isOpen', width: 100, align: 'center', slots: { customRender: 'isOpen' } },
   { title: '优先级', dataIndex: 'priority', key: 'priority', width: 80, align: 'center', sorter: (a, b) => a.priority - b.priority },
   { title: '纬度', dataIndex: 'latitude', key: 'latitude', width: 100, align: 'center' },
@@ -160,8 +180,9 @@ const modalVisible = ref(false)
 const modalLoading = ref(false)
 const isEdit = ref(false)
 const formRef = ref(null)
+const fileList = ref([])
 
-const defaultForm = () => ({ id: undefined, cityCode: '', cityName: '', isOpen: 0, priority: 0 })
+const defaultForm = () => ({ id: undefined, cityCode: '', cityName: '', cityImage: '', isOpen: 0, priority: 0 })
 const form = reactive(defaultForm())
 
 const rules = {
@@ -171,6 +192,7 @@ const rules = {
 
 const handleAdd = () => {
   Object.assign(form, defaultForm())
+  fileList.value = []
   isEdit.value = false
   modalVisible.value = true
 }
@@ -181,6 +203,9 @@ const handleEdit = async (record) => {
     const res = await getCityDetail(record.id)
     if (res?.data) {
       Object.assign(form, res.data)
+      fileList.value = res.data.cityImage
+        ? [{ uid: '-1', name: 'cityImage', status: 'done', url: res.data.cityImage }]
+        : []
       modalVisible.value = true
     }
   } catch (e) {
@@ -219,7 +244,30 @@ const handleDelete = async (id) => {
   }
 }
 
+// ---- 上传城市图片 ----
+const handleUpload = async ({ file, onSuccess, onError }) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('dir', 'city_image')
+  try {
+    const res = await uploadFileImage(fd)
+    if (res?.data?.url) {
+      form.cityImage = res.data.url
+      onSuccess(res.data)
+      message.success('上传成功')
+    } else {
+      onError(new Error('上传失败'))
+    }
+  } catch (e) {
+    onError(e)
+    message.error('上传失败')
+  }
+}
 
+const handleRemoveImage = () => {
+  form.cityImage = ''
+  fileList.value = []
+}
 
 onMounted(() => {
   fetchData()
