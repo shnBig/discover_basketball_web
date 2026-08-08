@@ -161,6 +161,8 @@ import { BellOutlined, SettingOutlined, DownOutlined } from "@ant-design/icons-v
 import { useUserStore } from "@/store/user";
 import { useNotificationStore } from "@/store/notification";
 import { useFeedbackWebSocket, disconnectWebSocket } from "@/composables/useFeedbackWebSocket";
+import { markCourtReportRead } from "@/api/courtReport";
+import { markFeedbackRead } from "@/api/feedback";
 import { message } from "ant-design-vue";
 import { useRoute, useRouter } from "vue-router";
 const route = useRoute();
@@ -220,9 +222,12 @@ function formatNotifyTime(timestamp) {
 
 function handleNotificationClick(item, index) {
   notificationStore.markAsRead(index);
+  // 调用后端接口标记为已读
   if (item.type === 'COURT_REPORT') {
+    markCourtReportRead(item.id).catch(e => console.error('标记球场反馈已读失败:', e));
     router.push({ path: '/court/court_report', query: { id: item.id, courtId: item.courtId } });
   } else if (item.type === 'APP_FEEDBACK') {
+    markFeedbackRead(item.id).catch(e => console.error('标记意见反馈已读失败:', e));
     router.push({ path: '/user_feedback', query: { id: item.id } });
   }
 }

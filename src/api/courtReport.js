@@ -30,6 +30,16 @@ export async function handleCourtReport(id, data) {
   }
 }
 
+// 标记球场反馈为已读
+export async function markCourtReportRead(id) {
+  try {
+    const res = await request.put(`/court-report/admin/${id}/read`);
+    return res.data;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
 // 删除球场反馈
 export async function deleteCourtReport(id) {
   try {

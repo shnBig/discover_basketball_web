@@ -30,6 +30,16 @@ export async function handleFeedback(id, data) {
   }
 }
 
+// 标记小程序意见反馈为已读
+export async function markFeedbackRead(id) {
+  try {
+    const res = await request.put(`/app-feedback/admin/${id}/read`);
+    return res.data;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
 // 删除意见反馈
 export async function deleteFeedback(id) {
   try {
