@@ -69,12 +69,13 @@
                   <a-select-option :value="2">沥青</a-select-option>
                   <a-select-option :value="3">硅PU</a-select-option>
                   <a-select-option :value="4">木地板</a-select-option>
+                  <a-select-option :value="5">悬浮底板</a-select-option>
                 </a-select>
               </a-form-item>
               <a-form-item label="收费">
                 <a-select
                   v-model:value="searchForm.isFree"
-                  placeholder="全部"
+                  placeholder="全部"0
                   allowClear
                   class="search-input search-input--sm"
                 >
