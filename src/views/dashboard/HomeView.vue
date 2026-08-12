@@ -34,7 +34,7 @@
 
     <!-- 近N日趋势 -->
     <a-row :gutter="16">
-      <a-col :span="24">
+      <a-col :xs="24" :md="12">
         <a-card :loading="loading">
           <template #title>
             <div class="flex items-center justify-between">
@@ -43,6 +43,17 @@
             </div>
           </template>
           <v-chart class="chart" :option="trendLineOption" autoresize />
+        </a-card>
+      </a-col>
+      <a-col :xs="24" :md="12">
+        <a-card :loading="loading">
+          <template #title>
+            <div class="flex items-center justify-between">
+              <span>新增用户趋势</span>
+              <a-segmented v-model:value="trendDays" :options="trendOptions" @change="fetchData" />
+            </div>
+          </template>
+          <v-chart class="chart" :option="userTrendLineOption" autoresize />
         </a-card>
       </a-col>
     </a-row>
@@ -167,6 +178,7 @@ const data = ref({
   materialDistribution: [],
   cityTop10: [],
   dailyTrend: [],
+  userTrend: [],
   pendingReviews: [],
   hotCourts: [],
   recentLogs: [],
@@ -215,6 +227,31 @@ const trendLineOption = computed(() => {
       },
       lineStyle: { color: '#1890ff', width: 2 },
       itemStyle: { color: '#1890ff' },
+    }],
+  };
+});
+
+const userTrendLineOption = computed(() => {
+  const trend = data.value.userTrend || [];
+  return {
+    tooltip: { trigger: 'axis' },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'category', boundaryGap: false, data: trend.map(i => i.date) },
+    yAxis: { type: 'value', name: '新增数', minInterval: 1 },
+    series: [{
+      type: 'line',
+      smooth: true,
+      data: trend.map(i => i.count),
+      areaStyle: {
+        color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: 'rgba(114, 46, 209, 0.4)' },
+            { offset: 1, color: 'rgba(114, 46, 209, 0.05)' },
+          ],
+        },
+      },
+      lineStyle: { color: '#722ed1', width: 2 },
+      itemStyle: { color: '#722ed1' },
     }],
   };
 });
