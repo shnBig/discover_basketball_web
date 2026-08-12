@@ -102,3 +102,13 @@ export async function getCourtImagePage(params) {
     return Promise.reject(error);
   }
 }
+
+// 人工审核球场图片 status: 3-人工审核通过，4-人工审核不通过
+export async function reviewCourtImage(imageId, status) {
+  try {
+    const res = await request.put(`/court/image/${imageId}`, { status });
+    return res.data;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}

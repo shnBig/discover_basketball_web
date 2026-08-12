@@ -91,6 +91,28 @@
                   <div class="image-card__time">
                     {{ img.createTime }}
                   </div>
+
+                  <!-- 人工审核操作 -->
+                  <div class="image-card__actions">
+                    <a-button
+                      size="small"
+                      type="primary"
+                      block
+                      :disabled="img.status === 3 || img.status === 4"
+                      @click="handleReview(img, 3)"
+                    >
+                      审核通过
+                    </a-button>
+                    <a-button
+                      size="small"
+                      danger
+                      block
+                      :disabled="img.status === 3 || img.status === 4"
+                      @click="handleReview(img, 4)"
+                    >
+                      审核不通过
+                    </a-button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -119,7 +141,8 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { EnvironmentOutlined } from '@ant-design/icons-vue'
-import { getCourtImagePage } from '@/api/court'
+import { message, Modal } from 'ant-design-vue'
+import { getCourtImagePage, reviewCourtImage } from '@/api/court'
 
 // ---- 常量 ----
 const auditStatusMap = {
@@ -196,6 +219,29 @@ const handleSizeChange = (_, size) => {
   fetchData()
 }
 
+// ---- 人工审核 ----
+const handleReview = (img, status) => {
+  const isPass = status === 3
+  Modal.confirm({
+    title: isPass ? '审核通过' : '审核不通过',
+    content: isPass
+      ? '确定将该图片审核为通过吗？审核通过后将在小程序端球场详情中展示。'
+      : '确定将该图片审核为不通过吗？审核不通过后将对小程序端用户隐藏。',
+    okText: isPass ? '通过' : '不通过',
+    okType: isPass ? 'primary' : 'danger',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        await reviewCourtImage(img.id, status)
+        message.success('图片审核完成')
+        fetchData()
+      } catch (e) {
+        message.error('审核失败')
+      }
+    },
+  })
+}
+
 onMounted(() => {
   fetchData()
 })
@@ -264,5 +310,12 @@ onMounted(() => {
   font-size: 11px;
   color: #86909c;
   margin-top: 4px;
+}
+
+.image-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
 }
 </style>
