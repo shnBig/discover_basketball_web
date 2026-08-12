@@ -523,6 +523,21 @@
             <a-descriptions-item label="纬度">{{ detailData.latitude }}</a-descriptions-item>
           </a-descriptions>
 
+          <!-- 提交信息 -->
+          <a-divider orientation="left">提交信息</a-divider>
+          <a-descriptions :column="2" size="small" bordered>
+            <a-descriptions-item label="提交用户ID">{{ detailData.submitUserId || '-' }}</a-descriptions-item>
+            <a-descriptions-item label="提交用户昵称">{{ detailData.submitUserNickname || '-' }}</a-descriptions-item>
+            <a-descriptions-item label="提交用户头像">
+              <a-avatar
+                v-if="detailData.submitUserAvatar"
+                :src="detailData.submitUserAvatar"
+                :size="32"
+              />
+              <span v-else>-</span>
+            </a-descriptions-item>
+          </a-descriptions>
+
           <!-- 场地信息 -->
           <a-divider orientation="left">场地信息</a-divider>
           <a-descriptions :column="2" size="small" bordered>
