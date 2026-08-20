@@ -7,6 +7,14 @@
         class="flex flex-wrap items-center justify-between border-b border-solid border-slate-200 dark:border-slate-800 px-4 md:px-10 py-2 md:py-3 bg-white/30 backdrop-blur-md dark:bg-slate-900 sticky top-0 z-50"
       >
         <div class="flex items-center gap-3 md:gap-4 h-12 order-1">
+          <!-- 手机端汉堡菜单按钮 -->
+          <a-button
+            type="text"
+            class="md:hidden flex items-center justify-center"
+            @click="mobileMenuVisible = true"
+          >
+            <template #icon><MenuOutlined class="text-xl" /></template>
+          </a-button>
           <img
             src="https://backend-admin.tos-cn-beijing.volces.com/logo/logo.png"
             alt="logo"
@@ -19,21 +27,21 @@
           </h2>
         </div>
 
+        <!-- 桌面端水平导航 -->
         <nav
-          class="nav-scroll order-3 md:order-2 w-full md:w-auto md:flex-1 md:min-w-0 mt-2 md:mt-0 border-t md:border-none border-slate-100 dark:border-slate-800"
+          class="nav-scroll hidden md:block order-2 flex-1 min-w-0 border-t md:border-none border-slate-100 dark:border-slate-800"
         >
           <a-menu
             v-model:selectedKeys="current"
             mode="horizontal"
             :trigger-sub-menu-action="'click'"
             :ellipsis="false"
-            class="bg-transparent border-none flex justify-center md:justify-start"
+            class="bg-transparent border-none flex justify-start"
           >
             <a-menu-item key="home">
               <router-link to="/home">仪表盘</router-link>
             </a-menu-item>
             <template v-for="menu in userStore.menus" :key="menu.menuPath || menu.id">
-              <!-- 有子菜单的父级 -->
               <a-sub-menu v-if="menu.children && menu.children.length > 0" :key="menu.menuPath || menu.id">
                 <template #title>
                   {{ menu.menuName }} <DownOutlined style="font-size: 10px; margin-left: 2px;" />
@@ -42,13 +50,45 @@
                   <router-link :to="menu.menuPath + child.menuPath">{{ child.menuName }}</router-link>
                 </a-menu-item>
               </a-sub-menu>
-              <!-- 无子菜单的叶子节点 -->
               <a-menu-item v-else-if="menu.menuPath" :key="menu.menuPath">
                 <router-link :to="menu.menuPath">{{ menu.menuName }}</router-link>
               </a-menu-item>
             </template>
           </a-menu>
         </nav>
+
+        <!-- 手机端侧边抽屉菜单 -->
+        <a-drawer
+          v-model:open="mobileMenuVisible"
+          placement="left"
+          :width="260"
+          :body-style="{ padding: '0' }"
+          closable
+          title="导航菜单"
+        >
+          <a-menu
+            v-model:selectedKeys="mobileCurrent"
+            v-model:openKeys="mobileOpenKeys"
+            mode="inline"
+            class="border-none"
+            @click="handleMobileMenuClick"
+          >
+            <a-menu-item key="home">
+              <router-link to="/home">仪表盘</router-link>
+            </a-menu-item>
+            <template v-for="menu in userStore.menus" :key="menu.menuPath || menu.id">
+              <a-sub-menu v-if="menu.children && menu.children.length > 0" :key="menu.menuPath || menu.id">
+                <template #title>{{ menu.menuName }}</template>
+                <a-menu-item v-for="child in menu.children" :key="child.menuPath">
+                  <router-link :to="menu.menuPath + child.menuPath">{{ child.menuName }}</router-link>
+                </a-menu-item>
+              </a-sub-menu>
+              <a-menu-item v-else-if="menu.menuPath" :key="menu.menuPath">
+                <router-link :to="menu.menuPath">{{ menu.menuName }}</router-link>
+              </a-menu-item>
+            </template>
+          </a-menu>
+        </a-drawer>
 
         <!-- 3. 右侧用户信息 (桌面端 Order 3, 手机端 Order 2) -->
         <div class="flex items-center gap-2 md:gap-4 order-2 md:order-3">
@@ -158,7 +198,7 @@
 
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from "vue";
-import { BellOutlined, SettingOutlined, DownOutlined } from "@ant-design/icons-vue";
+import { BellOutlined, SettingOutlined, DownOutlined, MenuOutlined } from "@ant-design/icons-vue";
 import { useUserStore } from "@/store/user";
 import { useNotificationStore } from "@/store/notification";
 import { useFeedbackWebSocket, disconnectWebSocket } from "@/composables/useFeedbackWebSocket";
@@ -178,6 +218,15 @@ const getRouteKey = (routeName) => {
 };
 
 const current = ref([getRouteKey(route.name) || "home"]);
+
+// 手机端菜单
+const mobileMenuVisible = ref(false);
+const mobileCurrent = ref([getRouteKey(route.name) || "home"]);
+const mobileOpenKeys = ref([]);
+
+function handleMobileMenuClick() {
+  mobileMenuVisible.value = false;
+}
 const avatarUrl = computed(() => userStore.userInfo?.avatarUrl|| JSON.parse(localStorage.getItem('userInfo') || '{}').avatarUrl);
 
 // 需要缓存的视图组件名称列表（根据路由 meta.keepAlive 判断）
@@ -191,7 +240,9 @@ const cachedViews = computed(() => {
 watch(
   () => route.name,
   (newName) => {
-    current.value = [getRouteKey(newName)];
+    const key = getRouteKey(newName);
+    current.value = [key];
+    mobileCurrent.value = [key];
   },
 );
 
