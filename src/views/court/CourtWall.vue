@@ -276,8 +276,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
+import { useIsMobile } from '@/composables/useIsMobile'
 import { getCourtWallPage, removeCourtFromWall, addCourtToWall, getContributionPage, handleCourtContributions, rejectContribution } from '@/api/courtWall'
 
 const statusLabelMap = { 0: '已下架', 1: '展示中' }
@@ -538,7 +539,9 @@ const pagination = ref({
   showTotal: (t) => `共 ${t} 条`,
 })
 
-const columns = [
+const { isMobile } = useIsMobile()
+
+const columns = computed(() => [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
   { title: '封面', dataIndex: 'coverImage', key: 'coverImage', width: 80, align: 'center', slots: { customRender: 'coverImage' } },
   { title: '球场名称', dataIndex: 'name', key: 'name', width: 180 },
@@ -547,8 +550,8 @@ const columns = [
   { title: '状态', dataIndex: 'status', key: 'status', width: 90, align: 'center', slots: { customRender: 'status' } },
   { title: '待处理贡献', dataIndex: 'pendingContributionCount', key: 'pendingContributionCount', width: 100, align: 'center', slots: { customRender: 'pendingContributionCount' } },
   { title: '添加时间', dataIndex: 'createTime', key: 'createTime', width: 170 },
-  { title: '操作', key: 'action', width: 180, fixed: 'right', slots: { customRender: 'action' } },
-]
+  { title: '操作', key: 'action', width: 180, ...(isMobile.value ? {} : { fixed: 'right' }), slots: { customRender: 'action' } },
+])
 
 const buildParams = () => {
   const params = {

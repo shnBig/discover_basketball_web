@@ -111,9 +111,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { useIsMobile } from '@/composables/useIsMobile'
 import { getCityPage, getCityDetail, addCity, updateCity, deleteCity } from '@/api/city'
 import { getCourtDataApi } from '@/api/amap/court';
 import { uploadFileImage } from '@/api/upload'

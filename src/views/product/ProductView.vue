@@ -260,6 +260,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
 import { PlusOutlined, ClockCircleOutlined, CheckCircleOutlined, ShoppingOutlined } from "@ant-design/icons-vue";
+import { useIsMobile } from "@/composables/useIsMobile";
 import { uploadFileImage } from "@/api/upload";
 import { getProductPage, getProductStatistics, getProductCategory, updateProductStatus, updateProductAudit } from "@/api/product";
 import { message } from "ant-design-vue";

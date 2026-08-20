@@ -157,6 +157,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { useIsMobile } from '@/composables/useIsMobile'
 import {
   getMenuPage,
   getMenuTree,

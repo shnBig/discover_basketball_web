@@ -163,9 +163,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted, watch, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRoute } from 'vue-router'
+import { useIsMobile } from '@/composables/useIsMobile'
 import { getFeedbackPage, getFeedbackDetail, handleFeedback, deleteFeedback } from '@/api/feedback'
 
 const route = useRoute()

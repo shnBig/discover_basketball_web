@@ -125,9 +125,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
+import { useIsMobile } from '@/composables/useIsMobile'
 import { getUserPage, getUserDetail, updateUserStatus, deleteUser } from '@/api/user'
 
 const genderMap = { 0: '未知', 1: '男', 2: '女' }
