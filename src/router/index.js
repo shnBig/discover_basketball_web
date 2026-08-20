@@ -20,10 +20,12 @@ const componentMap = {
   '/message': () => import('@/views/message/MessageView.vue'),
   '/court/court_map': () => import('@/views/court/CourtMap.vue'),
   '/court/court_list': () => import('@/views/court/CourtList.vue'),
+  '/court/court_wall': () => import('@/views/court/CourtWall.vue'),
   '/city_config': () => import('@/views/city_config/CityConfigView.vue'),
   '/test': () => import('@/views/test/test2.vue'),
   '/user_feedback': () => import('@/views/user_feedback/UserFeedbackView.vue'),
   '/court/court_report': () => import('@/views/court_report/CourtReportView.vue'),
+  '/app_version': () => import('@/views/version/VersionView.vue'),
 };
 
 /**

@@ -15,7 +15,7 @@
           <h2
             class="text-slate-900 dark:text-slate-100 text-base md:text-lg font-bold leading-tight whitespace-nowrap -translate-y-[-4px]"
           >
-            福尔摩篮后台管理系统
+            耶球场地图管理系统
           </h2>
         </div>
 
@@ -25,6 +25,7 @@
           <a-menu
             v-model:selectedKeys="current"
             mode="horizontal"
+            :trigger-sub-menu-action="'click'"
             :ellipsis="false"
             class="bg-transparent border-none flex justify-center md:justify-start"
           >

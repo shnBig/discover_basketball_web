@@ -27,10 +27,10 @@
           </a-select>
         </a-form-item>
         <a-form-item label="最后登录">
-          <a-range-picker v-model:value="searchForm.lastLoginTimeRange" show-time format="YYYY-MM-DD HH:mm:ss" :placeholder="['开始时间', '结束时间']" style="width: 280px" />
+          <QuickTimePicker v-model="searchForm.lastLoginTimeRange" />
         </a-form-item>
         <a-form-item label="创建时间">
-          <a-range-picker v-model:value="searchForm.createTimeRange" show-time format="YYYY-MM-DD HH:mm:ss" :placeholder="['开始时间', '结束时间']" style="width: 280px" />
+          <QuickTimePicker v-model="searchForm.createTimeRange" />
         </a-form-item>
         <a-form-item>
           <a-space>

@@ -13,7 +13,7 @@
           <h2
             class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight -translate-y-[-3px]"
           >
-            福尔摩篮后台管理系统
+            耶球场地图管理系统
           </h2>
         </div>
         <a-button

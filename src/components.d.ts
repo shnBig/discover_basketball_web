@@ -60,6 +60,7 @@ declare module 'vue' {
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
     MapComponent: typeof import('./components/MapComponent.vue')['default']
     MapNavigation: typeof import('./components/MapNavigation.vue')['default']
+    QuickTimePicker: typeof import('./components/QuickTimePicker.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

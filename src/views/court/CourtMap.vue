@@ -649,6 +649,7 @@ import {
   auditCourt,
 } from "@/api/court";
 import { uploadFileImage } from "@/api/upload";
+import { addCourtToWall, hasCourtWall } from "@/api/courtWall";
 import CourtCard from "@/components/CourtCard.vue";
 import MapNavigation from "@/components/MapNavigation.vue";
 
@@ -899,9 +900,19 @@ const addMarker = (court) => {
     `<div style="background:${colorMap[court.status] || "#999"};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer;"></div>`,
   );
 
-  marker.on("click", () => {
+  marker.on("click", async () => {
     const c = marker.getExtData();
     activeCourtId.value = c.id;
+
+    // 检查当前球场是否已在球场墙中
+    let inWall = false;
+    try {
+      const res = await hasCourtWall(c.id);
+      inWall = res?.data === true;
+    } catch (e) {
+      console.error('检查球场墙状态失败:', e);
+    }
+
     // 获取封面图
     const coverImage = (c.imageUrls && c.imageUrls.length > 0)
       ? c.imageUrls[0]
@@ -919,6 +930,11 @@ const addMarker = (court) => {
     } else if (c.status === 2) {
       auditBtn = `<button onclick="window.__courtAudit(${c.id}, 1)" style="padding:4px 10px;background:#52c41a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">上架</button>`;
     }
+
+    // 添加至球场墙按钮（仅在未加入球场墙时显示）
+    const addToWallBtn = !inWall
+      ? `<button onclick="window.__courtAddToWall(${c.id})" style="padding:4px 10px;background:#13c2c2;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">添加至球场墙</button>`
+      : '';
 
     // 图片 HTML
     const imageHtml = coverImage
@@ -944,6 +960,7 @@ const addMarker = (court) => {
           <button onclick="window.__courtEdit(${c.id})" style="padding:4px 10px;background:#1677ff;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">编辑</button>
           <button onclick="window.__courtDelete(${c.id})" style="padding:4px 10px;background:#ff4d4f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">删除</button>
           <button onclick="window.__courtNavigate(${c.id})" style="padding:4px 10px;background:#482d1a;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;">导航</button>
+          ${addToWallBtn}
         </div>
       </div>`;
     infoWindow.setContent(html);
@@ -1175,6 +1192,25 @@ const handleDelete = (id) => {
   });
 };
 
+// ---- 添加至球场墙 ----
+const handleAddToWall = (id) => {
+  Modal.confirm({
+    title: '添加至球场墙',
+    content: '确定将该球场添加至球场墙吗？添加后用户可为其补充信息。',
+    okText: '确认添加',
+    cancelText: '取消',
+    async onOk() {
+      try {
+        await addCourtToWall({ courtId: id });
+        message.success("添加成功");
+        infoWindow?.close();
+      } catch (e) {
+        message.error("添加失败");
+      }
+    }
+  });
+};
+
 // ---- 审核 ----
 const auditVisible = ref(false);
 const auditLoading = ref(false);
@@ -1396,6 +1432,9 @@ onMounted(async () => {
       message.warning("该球场暂无坐标信息");
     }
   };
+  window.__courtAddToWall = (id) => {
+    handleAddToWall(id);
+  };
 
   // 手机端自动定位并检查城市
   if (isMobile()) {
@@ -1430,6 +1469,7 @@ onUnmounted(() => {
   delete window.__courtAudit
   delete window.__courtDetail
   delete window.__courtNavigate
+  delete window.__courtAddToWall
   delete window.__closeInfoWindow
   delete window.__closeInfoWindow
 })
